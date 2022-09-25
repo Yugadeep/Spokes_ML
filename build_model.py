@@ -7,6 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from keras.layers import Input, Conv2D
 from keras.models import Model
+import math
+from pathlib import Path
+import re
 
 BACKBONE = 'resnet34'
 preprocess_input = sm.get_preprocessing(BACKBONE)
@@ -20,20 +23,23 @@ SIZE_Y = 224
 train_images = []
 train_masks = []
 
-for img_path in glob.glob("training/"):
-    print(img_path)
+file_pattern = re.compile(r'.*?(\d+).*?')
+def get_order(file):
+    match = file_pattern.match(Path(file).name)
+    if not match:
+        return math.inf
+    return int(match.groups()[0])
+
+
+for img_path in sorted(glob.glob("training/images/*.png"), key=get_order):
     img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-    img = cv2.resize(img, (SIZE_Y, SIZE_X))
-    # plt.imshow(img, cmap = 'gray')
-    # plt.show()
-    # exit()
+    img = cv2.resize(img, (SIZE_X, SIZE_Y))
     train_images.append(img)
 
-for mask_path in glob.glob("../training/mask/*.png"):
+for mask_path in sorted(glob.glob("training\masks\*.png"), key=get_order):
     mask = cv2.imread(mask_path, 0)
-    mask = cv2.resize(mask, (SIZE_Y, SIZE_X))
+    mask = cv2.resize(mask, (SIZE_X, SIZE_Y))
     train_masks.append(mask)
-
 
 
 train_images = np.array(train_images)
@@ -53,7 +59,7 @@ x_val = preprocess_input(x_val)
 N = 1 #number of channels
 
 # define model 
-model = sm.Unet(backbone_name='resnet34', encoder_weights=None, input_shape=(SIZE_X, SIZE_Y, N))
+model = sm.Unet(backbone_name='resnet34', encoder_weights=None, input_shape=(SIZE_Y, SIZE_X, N))
 
 # model = Model(inp, out, name=base_model.name)
 model.compile(optimizer =  'adam', loss = "binary_crossentropy", metrics = [sm.metrics.iou_score], )
@@ -64,13 +70,13 @@ history = model.fit(
    x=x_train,
    y=y_train,
    batch_size=5,
-   epochs=10,
+   epochs=100,
    verbose=1,
    validation_data=(x_val, y_val),
 )
 
 
-model.save('model/model.h5')
+model.save('model/30_im-100b.h5')
 
 
 # #########################################################
