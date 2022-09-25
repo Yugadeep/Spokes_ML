@@ -1,3 +1,4 @@
+
 import tensorflow as tf
 import segmentation_models as sm
 import glob
@@ -12,14 +13,15 @@ preprocess_input = sm.get_preprocessing(BACKBONE)
 sm.set_framework('tf.keras')
 
 
-SIZE_X = 1024
-SIZE_Y = 1024
+SIZE_X = 1504
+SIZE_Y = 224
 
 # capture training ifo as a list
 train_images = []
 train_masks = []
 
-for img_path in glob.glob("../data/training/images/*.png"):
+for img_path in glob.glob("training/"):
+    print(img_path)
     img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
     img = cv2.resize(img, (SIZE_Y, SIZE_X))
     # plt.imshow(img, cmap = 'gray')
@@ -27,7 +29,7 @@ for img_path in glob.glob("../data/training/images/*.png"):
     # exit()
     train_images.append(img)
 
-for mask_path in glob.glob("../data/training/mask/*.png"):
+for mask_path in glob.glob("../training/mask/*.png"):
     mask = cv2.imread(mask_path, 0)
     mask = cv2.resize(mask, (SIZE_Y, SIZE_X))
     train_masks.append(mask)
@@ -36,6 +38,7 @@ for mask_path in glob.glob("../data/training/mask/*.png"):
 
 train_images = np.array(train_images)
 train_masks = np.array(train_masks)
+
 
 X = train_images
 Y = train_masks
@@ -47,15 +50,10 @@ x_train, x_val, y_train, y_val = train_test_split(X,Y, test_size = 0.2, random_s
 x_train = preprocess_input(x_train)
 x_val = preprocess_input(x_val)
 
-print(x_train.shape)
-exit()
-
-
-
 N = 1 #number of channels
 
 # define model 
-model = sm.Unet(backbone_name='resnet34', encoder_weights=None, input_shape=(None, None, N))
+model = sm.Unet(backbone_name='resnet34', encoder_weights=None, input_shape=(SIZE_X, SIZE_Y, N))
 
 # model = Model(inp, out, name=base_model.name)
 model.compile(optimizer =  'adam', loss = "binary_crossentropy", metrics = [sm.metrics.iou_score], )
@@ -72,7 +70,7 @@ history = model.fit(
 )
 
 
-model.save('../model/model.h5')
+model.save('model/model.h5')
 
 
 # #########################################################
