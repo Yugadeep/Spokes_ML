@@ -92,7 +92,7 @@ def train_model(X, Y, SIZE_X, SIZE_Y, epoch_num, model_path, batch_size = 5):
 
 #########################################################
 def test_model(model_path, testim_path, SIZE_X, SIZE_Y, batch_size, training_size): 
-    model = keras.models.load_model('../model/model.h5', compile=False)
+    model = keras.models.load_model(f"{model_path}+{training_size}_im-{epoch_size}.h5", compile=False)
 
     test_img = cv2.imread(testim_path, cv2.IMREAD_GRAYSCALE)
     test_img = cv2.resize(test_img, (SIZE_Y, SIZE_X))
@@ -103,7 +103,7 @@ def test_model(model_path, testim_path, SIZE_X, SIZE_Y, batch_size, training_siz
     #View and Save segmented image
     prediction_image = prediction.reshape(mask.shape)
     plt.imshow(prediction_image, cmap='gray')
-    plt.imsave(f'{training_size}_im-{epoch_size}.png', prediction_image, cmap='gray')
+    plt.imsave(f'output_{training_size}_im-{epoch_size}.png', prediction_image, cmap='gray')
 
 #Main
 SIZE_X = 1504
