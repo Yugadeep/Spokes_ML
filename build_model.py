@@ -90,21 +90,25 @@ def train_model(X, Y, SIZE_X, SIZE_Y, epoch_num, model_path, batch_size = 5):
     model.save(f"{model_path}+{training_size}_im-{epoch_size}.h5")
 
 
-#########################################################
-def test_model(model_path, testim_path, SIZE_X, SIZE_Y, batch_size, training_size): 
-    model = keras.models.load_model(f"{model_path}+{training_size}_im-{epoch_size}.h5", compile=False)
+
+def test_model(model_path, testim_path, SIZE_X, SIZE_Y, epoch_size, training_size): 
+    model = keras.models.load_model(f"{model_path}{training_size}im_{epoch_size}b.h5", compile=False)
 
     test_img = cv2.imread(testim_path, cv2.IMREAD_GRAYSCALE)
-    test_img = cv2.resize(test_img, (SIZE_Y, SIZE_X))
+    test_img = cv2.resize(test_img, (SIZE_X, SIZE_Y))
     test_img = np.expand_dims(test_img, axis=0)
 
     prediction = model.predict(test_img)
 
     #View and Save segmented image
-    prediction_image = prediction.reshape(mask.shape)
+    prediction_image = prediction.reshape((test_img.shape[1], test_img.shape[2]))
+    filename = testim_path.split('/')[3]
     plt.imshow(prediction_image, cmap='gray')
-    plt.imsave(f'output_{training_size}_im-{epoch_size}.png', prediction_image, cmap='gray')
+    plt.imsave(f'../training/validation/val_{filename}.png', prediction_image, cmap='gray')
 
+
+
+#########################################################
 #Main
 SIZE_X = 1504
 SIZE_Y =  224
@@ -113,4 +117,7 @@ print(X.shape)
 print(Y.shape)
 
 
-train_model(X, Y, SIZE_X, SIZE_Y, 10, model_path = "../model/", batch_size = 5)
+#train_model(X, Y, SIZE_X, SIZE_Y, 10, model_path = "../model/", batch_size = 5)
+for testim_path in glob.glob("../training/validation/*.png"):
+    print(testim_path)
+    test_model('../model/', testim_path, SIZE_X, SIZE_Y, 100, 30)
