@@ -43,6 +43,10 @@ def apply_filter(filepath):
 			datapoints[y, x] = 0
 
 
+	#make whole median square
+	#make this thing more modular
+	#same thing with build_model. 
+	#I wanna use these whenever I get images and can make trainign
 
 	#crop here
 	y = 150
