@@ -42,31 +42,39 @@ def apply_filter(filepath):
 		for x in zeroes:
 			datapoints[y, x] = 0
 
+	top_id, bottom_id = 0,0
+	#get the row at the bottom based on quant
+	for row_id_bot in range(len(datapoints_q)-1, 0, -1):
+		if np.sum(datapoints_q[row_id_bot]) != len(datapoints_q[row_id_bot]):
+			bottom_id = row_id_bot-5
+			bottom_row = np.where(datapoints_q[row_id_bot-10] == 0)[0]
+			break;
 
-	#make whole median square
-	#make this thing more modular
-	#same thing with build_model. 
-	#I wanna use these whenever I get images and can make trainign
+	for row_id_top in range(bottom_id, 0, -1):
+		if np.sum(datapoints_q[row_id_top]) == len(datapoints_q[row_id_top]):
+			top_id = row_id_top+5
+			break;
+	save_image(datapoints_q, "quant_"+filename)
 
-	#crop here
-	y = 150
-	non_zero = np.where(datapoints[y] != 0)[0]
-	print(type(non_zero))
+	print(filename)
+	print(bottom_id)
+	print(top_id)
+	# plt.imshow(datapoints_q, cmap = "gray")
+	# plt.show()
 
-
-	datapoints=datapoints[160:340, non_zero[0]:non_zero[-1]]#cropping pixels to where the spokes are
-	m,n=datapoints.shape
+	datapoints = datapoints[row_id_top:row_id_bot, bottom_row[0]:bottom_row[-1]]
+	m, n = datapoints.shape
 
 	
-	for i in range(m):
-		# removes the top 20 brightest pixels by replacing them with the 21st brightest per row of pixels
-		top20 = np.argsort(datapoints[i])[-21:]
-		for j in top20:
-			datapoints[i,j] = datapoints[i,top20[0]]
+	# for i in range(m):
+	# 	# removes the top 20 brightest pixels by replacing them with the 21st brightest per row of pixels
+	# 	top20 = np.argsort(datapoints[i])[-21:]
+	# 	for j in top20:
+	# 		datapoints[i,j] = datapoints[i,top20[0]]
 
-		#subtract med from all pixels
-		med=np.median(datapoints[i,:])
-		datapoints[i,:] =[(datapoints[i,j]-med) for j in range(n)]
+	# 	#subtract med from all pixels
+	# 	med=np.median(datapoints[i,:])
+	# 	datapoints[i,:] =[(datapoints[i,j]-med) for j in range(n)]
 
 
 	return datapoints, filename
@@ -75,7 +83,7 @@ def save_image(filt_image, filename):
 	plt.figure()
 	plt.axis('off')
 	fig = plt.imshow(filt_image,cmap = plt.get_cmap('gray'),origin='upper')
-	plt.savefig(f"testing/081_{filename}_cf.png",bbox_inches='tight',transparent=True, pad_inches=0, dpi=300)
+	plt.savefig(f"../data/testing/081_SPKMVLFLP_{filename}_cf.png",bbox_inches='tight',transparent=True, pad_inches=0, dpi=300)
 	plt.close()
 
 if __name__ == "__main__":
@@ -83,7 +91,7 @@ if __name__ == "__main__":
 	for filepath in glob.glob(f"../data/rpj/081_SPKMVLFLP/*.rpjb"):
 		filt_image, filename = apply_filter(filepath)
 		save_image(filt_image, filename)
-		print(filename+" has been saved")
+		#print(filename+" has been saved")
 
 
 
