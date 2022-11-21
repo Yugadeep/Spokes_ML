@@ -4,14 +4,13 @@ from skimage import io
 import re
 from pathlib import Path
 import matplotlib.pyplot as plt
+from os.path import exists
 
 
 
 #input
-img_folder = "../data/training/images"
-mask_folder = "../data/training/masks"
-
-aug_num = 2
+training_folder = "/Users/willbyrne/Documents/CODE/GLAD/cloud_mask/training"
+aug_num = 20
 
 
 
@@ -26,17 +25,17 @@ def get_order(file):
 
 #Albumentation function:
 aug = alb.Compose([
+    alb.VerticalFlip(),
     alb.HorizontalFlip(),    #images and masks
     alb.RandomGamma(),    #images
     alb.RandomBrightnessContrast(),  #images
-    alb.GridDistortion(),    #images and masks
-    alb.RingingOvershoot(),   #images
     alb.GaussNoise()],    #images  
-    additional_targets={'im' : 'msk'}
+    additional_targets={'image' : 'mask'}
 )
 
 
-
+img_folder = f"{training_folder}/images"
+mask_folder = f"{training_folder}/masks" 
 
 img_paths = glob.glob(f"{img_folder}/*.png")
 mask_paths = glob.glob(f"{mask_folder}/*.png")
@@ -47,12 +46,16 @@ for img_path, mask_path in zip(sorted(img_paths, key = get_order),sorted(mask_pa
 
     image = io.imread(img_path)
     mask = io.imread(mask_path)
-    print(f'Augementing {img_name} {aug_num} times ...')
+    if "aug" not in img_name: 
+        print(f'Augementing {img_name} {aug_num} times ...')
 
-    for i in range(0, aug_num):
-        augs = aug(image = image, mask = mask)
-        io.imsave(f"{img_folder}/aug{i}_{img_name}", augs['image'])
-        io.imsave(f"{mask_folder}/aug{i}_{mask_name}",augs['mask'])
+        for i in range(0, aug_num):
+            augs = aug(image = image, mask = mask)
+            if not exists(f"{img_folder}/aug{i}_{img_name}"):
+                io.imsave(f"{img_folder}/aug{i}_{img_name}", augs['image'])
+                io.imsave(f"{mask_folder}/aug{i}_{mask_name}",augs['mask'])
+            else:
+                print(f"aug{i}_{img_name} and mask Already exists")
 
 
 
