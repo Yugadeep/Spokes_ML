@@ -62,19 +62,30 @@ def apply_filter(filepath):
 	m, n = pixel_values.shape
 
 
-	## filtering image
- 	# might want to check all images when given for upper/lower bounds cut off
-	# crop = np.where(pixel_values[65, :] > 0.09)
-	# pixel_values=pixel_values[150:350, crop[0][0]+65:crop[0][-1]-65]#cropping pixels to where the spokes are
-	# m,n=pixel_values.shape
-
+	# Quantize - make a copy of the image space, but put a 1 where data is and a 0 where shadow/where data is lacking
+	# Can only filter rectangular data, so if we find max and min of x and ys of data, we can make perfect rectangle around it
+	# then fill in any remaining space, and filter small values out using our quantized version. 
+	# Then tada, rectangle of non-rectangluar data!
+	plt.imshow(pixel_values, cmap="gray")
+	plt.show()
+	#will likely need new method of quantizing, seeing as this doens't exactly do what I want
 	pixel_values, quant = apply_quantize(pixel_values)
+	
 
 
+	plt.imshow(quant, cmap="gray")
+	plt.show()
+
+	plt.imshow(pixel_values, cmap="gray")
+	plt.show()
+
+	# lame way of doing this. to find x and y, every time I find a small index on y axis or 
 	bounds_x = []
 	bounds_y = []
 	last_sum = 0
-	#^1 means XOR. If 0 or 1, bitwise exclusive or. Flipping 0s and 1s
+
+
+	# ^1 means XOR. If 0 or 1, bitwise exclusive or. Flipping 0s and 1s
 	# this for loop finds the smallest and largest index that has a 1. 
 	for i in range(0, len(quant)):
 		quant[i] = np.where((quant[i] == 0)|( quant[i] == 1),quant[i]^1, quant[i])
@@ -91,16 +102,42 @@ def apply_filter(filepath):
 
 
 
-
-	pixel_values=pixel_values[min(bounds_y)+20:max(bounds_y)-20, min(bounds_x):max(bounds_x)]
-
-	for i in range(0, len(pixel_values)):
-		pixel_values[i][pixel_values[i] == 0] = np.median(pixel_values[i].flatten())
+	pixel_values=pixel_values[min(bounds_y):max(bounds_y), min(bounds_x):max(bounds_x)]
 
 
+
+	plt.imshow(pixel_values, cmap="gray")
+	plt.show()
+	for i in range(len(pixel_values)):
+		#pixel_values[i][pixel_values[i] == 0] = np.median(pixel_values[i].flatten())
+		for j in range(len(pixel_values[i])):
+			if pixel_values[i][j] == 0.0:
+				pixel_values[i][j] = np.median(pixel_values[i].flatten())
+
+
+
+	plt.imshow(pixel_values, cmap="gray")
+	plt.show()
+	for i in range(len(pixel_values)):
+		pixel_values[i][pixel_values[i] == 0] = np.median(pixel_values[i,np.nonzero(pixel_values[i])[0]])
+
+
+	plt.imshow(pixel_values, cmap="gray")
+	plt.show()
 	pixel_values = apply_median(pixel_values)
-	pixel_values = gaussian_filter(pixel_values, sigma = 3)
+
+
+	plt.imshow(pixel_values, cmap="gray")
+	plt.show()
+	pixel_values = gaussian_filter(pixel_values, sigma = 8)
+
+
+	plt.imshow(pixel_values, cmap="gray")
+	plt.show()
+
+	exit()
 	
+
 
 	return pixel_values, filename
 
@@ -108,13 +145,20 @@ def save_image(filt_image, filename):
 	plt.figure()
 	plt.axis('off')
 	fig = plt.imshow(filt_image,cmap = plt.get_cmap('gray'),origin='upper')
-	plt.savefig(f"../data/testing/new_cropping_with_rays/081_SPKMVLFLP_{filename}_cf.png",bbox_inches='tight',transparent=True, pad_inches=0, dpi=300)
+	plt.savefig(f"../data/testing/new_cropping_with_rays/102_SPKTRKLF{filename}_cf.png",bbox_inches='tight',transparent=True, pad_inches=0, dpi=300)
 	plt.close()
 
 if __name__ == "__main__":
 	rays = ["W1597972495_1_cal.rpjb", "W1597974445_1_cal.rpjb", "W1597985170_1_cal.rpjb", "W1597996870_1_cal.rpjb", "W1597997845_1_cal.rpjb"]
-	for filepath in glob.glob(f"../data/rpj/081_SPKMVLFLP/*.rpjb"):
-		if filepath.split('/')[4] in rays: 
+	rays_path = "../data/rpj/081_SPKMVLFLP/*.rpjb"
+
+	curves = ["W1612302742_1_CALIB.rpjb"]
+	curves_path = "../data/rpj/102_SPKTRKLF/*.rpjb"
+
+
+
+	for filepath in glob.glob(curves_path):
+		if filepath.split('/')[4] in curves: 
 			filt_image, filename = apply_filter(filepath)
 			save_image(filt_image, filename)
 			print(filepath)

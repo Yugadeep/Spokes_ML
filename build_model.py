@@ -101,7 +101,7 @@ def test_model(model_path, testim_path, SIZE_X, SIZE_Y, epoch_size, training_siz
     prediction = model.predict(test_img)
 
     #View and Save segmented image
-    prediction_image = prediction.reshape((test_img.shape[1], test_img.shape[2]))
+    prediction_image = prediction.reshape((244,244))
     filename = testim_path.split('/')[3]
     plt.imshow(prediction_image, cmap='gray')
     plt.imsave(f'../training/validation/val_{filename}.png', prediction_image, cmap='gray')

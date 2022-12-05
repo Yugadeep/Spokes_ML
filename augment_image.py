@@ -8,9 +8,9 @@ from os.path import exists
 
 
 
-#input
-training_folder = "/Users/willbyrne/Documents/CODE/GLAD/cloud_mask/training"
-aug_num = 20
+#input - training folder. Ex: ..../data/training
+training_folder = "/Users/willbyrne/Documents/CODE/Hamilton/Unet_Spokes/data/training"
+aug_num = 10
 
 
 
@@ -56,7 +56,6 @@ for img_path, mask_path in zip(sorted(img_paths, key = get_order),sorted(mask_pa
                 io.imsave(f"{mask_folder}/aug{i}_{mask_name}",augs['mask'])
             else:
                 print(f"aug{i}_{img_name} and mask Already exists")
-
 
 
 
