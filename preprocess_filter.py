@@ -157,8 +157,8 @@ if __name__ == "__main__":
 
 
 
-	for filepath in glob.glob(curves_path):
-		if filepath.split('/')[4] in curves: 
+	for filepath in glob.glob(rays_path):
+		if filepath.split('/')[4] in rays: 
 			filt_image, filename = apply_filter(filepath)
 			save_image(filt_image, filename)
 			print(filepath)

@@ -26,10 +26,9 @@ def get_order(file):
 #Albumentation function:
 aug = alb.Compose([
     alb.VerticalFlip(),
-    alb.HorizontalFlip(),    #images and masks
-    alb.RandomGamma(),    #images
-    alb.RandomBrightnessContrast(),  #images
-    alb.GaussNoise()],    #images  
+    alb.HorizontalFlip(),
+    alb.PixelDropout(),
+    alb.GridDistortion()], 
     additional_targets={'image' : 'mask'}
 )
 
