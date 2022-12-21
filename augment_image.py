@@ -10,7 +10,7 @@ from os.path import exists
 
 #input - training folder. Ex: ..../data/training
 training_folder = "/Users/willbyrne/Documents/CODE/Hamilton/Unet_Spokes/data/training"
-aug_num = 10
+aug_num = 15
 
 
 
