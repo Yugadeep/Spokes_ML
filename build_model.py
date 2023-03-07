@@ -1,8 +1,10 @@
 # Model creation
+import os
 import tensorflow as tf
 from tensorflow import keras
 from keras.layers import Input, Conv2D
 from keras.models import Model
+os.environ["SM_FRAMEWORK"]= "tf.keras"
 import segmentation_models as sm
 from sklearn.model_selection import train_test_split
 
@@ -17,14 +19,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-
-BACKBONE = 'resnet34'
-preprocess_input = sm.get_preprocessing(BACKBONE)
-sm.set_framework('tf.keras')
-training_size = 0
+#Augumetnation
+from augment_image import augment_semantic_set
 
 
-def data_gather(SIZE_X, SIZE_Y, training_path="../training/"):
+def data_gather(SIZE_X, SIZE_Y, training_path):
 
     # capture training ifo as a list
     train_images = []
@@ -39,12 +38,12 @@ def data_gather(SIZE_X, SIZE_Y, training_path="../training/"):
             return math.inf
         return int(match.groups()[0])
 
-    for img_path in sorted(glob.glob(training_path+"images/*.png"), key=get_order):
+    for img_path in sorted(glob.glob(training_path+"/images/*.png"), key=get_order):
         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
         img = cv2.resize(img, (SIZE_X, SIZE_Y))
         train_images.append(img)
 
-    for mask_path in sorted(glob.glob(training_path+"masks/*.png"), key=get_order):
+    for mask_path in sorted(glob.glob(training_path+"/masks/*.png"), key=get_order):
         mask = cv2.imread(mask_path, 0)
         mask = cv2.resize(mask, (SIZE_X, SIZE_Y))
         train_masks.append(mask)
@@ -52,9 +51,12 @@ def data_gather(SIZE_X, SIZE_Y, training_path="../training/"):
     train_images = np.array(train_images)
     train_masks = np.array(train_masks)
 
-    training_size = len(train_images)
     X = train_images
     Y = train_masks
+
+
+    X,Y = augment_semantic_set(X, Y, aug_num = 20)
+
     return X, Y
 
 
@@ -62,10 +64,6 @@ def train_model(X, Y, SIZE_X, SIZE_Y, epoch_num, model_path, batch_size=5):
     # splits X and Y into training and validation sets
     x_train, x_val, y_train, y_val = train_test_split(
         X, Y, test_size=0.2, random_state=42)
-
-    # preprocess_input
-    x_train = preprocess_input(x_train)
-    x_val = preprocess_input(x_val)
 
     N = 1  # number of channels
 
@@ -111,14 +109,22 @@ def test_model(model_path, testim_path, SIZE_X, SIZE_Y, epoch_size, training_siz
 
 #########################################################
 # Main
+BACKBONE = 'resnet34'
+preprocess_input = sm.get_preprocessing(BACKBONE)
+sm.set_framework('tf.keras')
+
+
 SIZE_X = 1504
 SIZE_Y = 224
-X, Y = data_gather(SIZE_X, SIZE_Y, training_path="../training/")
+
+
+X, Y = data_gather(SIZE_X, SIZE_Y, training_path="../data/training")
+training_size = len(X)
 print(X.shape)
 print(Y.shape)
 
 
-#train_model(X, Y, SIZE_X, SIZE_Y, 10, model_path = "../model/", batch_size = 5)
-for testim_path in glob.glob("../training/validation/*.png"):
-    print(testim_path)
-    test_model('../model/', testim_path, SIZE_X, SIZE_Y, 100, 30)
+# #train_model(X, Y, SIZE_X, SIZE_Y, 10, model_path = "../model/", batch_size = 5)
+# for testim_path in glob.glob("../training/validation/*.png"):
+#     print(testim_path)
+#     test_model('../model/', testim_path, SIZE_X, SIZE_Y, 100, 30)

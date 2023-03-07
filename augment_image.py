@@ -5,12 +5,8 @@ import re
 from pathlib import Path
 import matplotlib.pyplot as plt
 from os.path import exists
-
-
-
-#input - training folder. Ex: ..../data/training
-training_folder = "/Users/willbyrne/Documents/CODE/Hamilton/Unet_Spokes/data/training"
-aug_num = 15
+import math
+import numpy as np
 
 
 
@@ -33,28 +29,16 @@ aug = alb.Compose([
 )
 
 
-img_folder = f"{training_folder}/images"
-mask_folder = f"{training_folder}/masks" 
+def augment_semantic_set(X, Y, aug_num = 2):
 
-img_paths = glob.glob(f"{img_folder}/*.png")
-mask_paths = glob.glob(f"{mask_folder}/*.png")
-for img_path, mask_path in zip(sorted(img_paths, key = get_order),sorted(mask_paths, key = get_order)):
+    for image, mask in zip(X,Y):
+            for i in range(0, aug_num):
+                augs = aug(image = image, mask = mask)
+                X = np.append(X, [augs['image']], axis=0)
+                Y = np.append(Y, [augs['mask']], axis=0)
 
-    img_name = img_path.split("/")[-1]
-    mask_name = mask_path.split("/")[-1]
-
-    image = io.imread(img_path)
-    mask = io.imread(mask_path)
-    if "aug" not in img_name: 
-        print(f'Augementing {img_name} {aug_num} times ...')
-
-        for i in range(0, aug_num):
-            augs = aug(image = image, mask = mask)
-            if not exists(f"{img_folder}/aug{i}_{img_name}"):
-                io.imsave(f"{img_folder}/aug{i}_{img_name}", augs['image'])
-                io.imsave(f"{mask_folder}/aug{i}_{mask_name}",augs['mask'])
-            else:
-                print(f"aug{i}_{img_name} and mask Already exists")
+    return X,Y
+    
 
 
 
