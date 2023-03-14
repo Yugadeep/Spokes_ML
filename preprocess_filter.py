@@ -14,6 +14,32 @@ from scipy.ndimage import gaussian_filter
 
 np.set_printoptions(threshold=4000)
 
+# This function is complicated. 
+# It looks at the qauntization mask and tries to find the largest repeating sequences of 1s. 
+# It does this by adding up all of the 1s that show, and putting the size, x_start, and x_end into a dictionary. 
+# If it runs across a sequence of 1s thats larger then whats in the LS dictionary, it replaces the old sequence with the new one. 
+def get_quant_LS_index(quant): 
+    LS = {"size": 0,
+      "x_start": 0,
+      "x_end": 0}
+    current_sum = 0
+    start_x = 0
+
+    for y in range(0,len(quant)-1):
+        current_sum = 0
+        for x in range(0,len(quant[y])-1):
+            if quant[y][x] == 1:
+                current_sum += 1
+                if quant[y][x-1] == 0:
+                    start_x = x
+            if quant[y][x] == 0 and current_sum > LS['size']:
+                LS['size'] = current_sum
+                LS['x_start'] = start_x
+                LS['x_end'] = x
+                current_sum = 0
+                start_x = 0
+    return LS
+
 #quantizing to remove shadow
 def apply_quantize(pixel_values):
 	p = 255*(pixel_values-pixel_values.min())/(pixel_values.max()-pixel_values.min())
@@ -65,7 +91,6 @@ def apply_filter(filepath):
 	pixel_values = idl.rrpi
 	pixel_values=copy.copy(pixel_values)
 	m, n = pixel_values.shape
-	
 
 
 
@@ -76,6 +101,8 @@ def apply_filter(filepath):
 	# Then tada, rectangle of non-rectangluar data!
 
 	pixel_values, quant = apply_quantize(pixel_values)
+	plt.imshow(quant, cmap="gray")
+	plt.show()
 	
 
 	
@@ -83,16 +110,12 @@ def apply_filter(filepath):
 	########################################################################
 	# crop pixel_values so that the max/min x values match the min/max non-zero x values of the quant mask
 
-	nonzeros = np.asarray(np.nonzero(quant)).flatten()
-	nonzeros[nonzeros == 0] = 9999999
+	LS = get_quant_LS_index(quant)
 
+	pixel_values = pixel_values[:, LS["x_start"]:LS["x_end"]]
 
-	x_min = nonzeros.min()
-	nonzeros[nonzeros == 9999999] = 0
-	x_max = nonzeros.max()
-
-	pixel_values=pixel_values[:, x_min:x_max]
-
+	plt.imshow(pixel_values, cmap="gray")
+	plt.show()
 	
 
 	
@@ -109,16 +132,16 @@ def apply_filter(filepath):
 
 	for i in range(len(pixel_values)):
 		pixel_values[i][pixel_values[i] == 0] = np.median(pixel_values[i,np.nonzero(pixel_values[i])[0]])
-
-
-
-	pixel_values = apply_median(pixel_values)
 	plt.imshow(pixel_values, cmap="gray")
 	plt.show()
+	exit()
 
-	pixel_values = gaussian_filter(pixel_values, sigma = 3)
-	plt.imshow(pixel_values, cmap='gray')
-	plt.show()
+
+	#median and gaussian filter respectively
+	pixel_values = apply_median(pixel_values)
+
+
+	pixel_values = gaussian_filter(pixel_values, sigma = 2)
 
 
 	return filename, pixel_values
@@ -138,8 +161,16 @@ if __name__ == "__main__":
 	# curves_path = "../data/rpj_old/102_SPKTRKLF/*.rpjb"
 	rpj_new = "/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/rpj_new/"
 	thumb = "/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/2023_thumbnails/"
+	folders = [folder+"/" for folder in glob.glob(rpj_new+"*")]
+	#folders.remove("/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/rpj_new/00A_SPKMOVPER/")
+	#folders.remove("/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/rpj_new/124_SPKMVDFHP/")
+	first_file = []
+	for folder in folders:
+		first_file.append(glob.glob(folder+"*.rpjb")[0])
+	#problem folder - 00A_SPKMOVPER/, /124_SPKMVDFHP/
+	
 
-	for filepath in glob.glob(rpj_new+"**/*.rpjb"):
+	for filepath in ["/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/rpj_new/074_SPKLFMOV/W1593682206_1_CALIB.rpjb"]:
 		split = filepath.split("/")
 		folder = split[-2]
 		
@@ -148,12 +179,10 @@ if __name__ == "__main__":
 			os.mkdir(thumb+folder+"/")
 		
 		filename, filt_image = apply_filter(filepath)
-
+		print(f"applied filter to {filename}... {first_file.index(filepath)+1}/{len(first_file)}")
 		new_thumb_path = thumb+folder+"/"+filename+".png"
 
 		save_image(new_thumb_path, filt_image)
-		exit()
-
 		
 
 
