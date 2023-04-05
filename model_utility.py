@@ -105,7 +105,7 @@ def train_model(model_path, model_params):
 def define_model(backbone = "vgg16"):   
     SIZE_X = 1504
     SIZE_Y =  224
-    model = sm.Unet(backbone_name=backbone, encoder_weights = None, input_shape=(SIZE_Y,SIZE_X, 1))
+    model = sm.Unet(backbone_name=backbone, encoder_weights = None, input_shape=(SIZE_Y*SIZE_X, 1))
     # model = Model(inp, out, name=base_model.name)
     model.compile(optimizer = "Adam" , loss = "binary_crossentropy", metrics = [sm.metrics.IOUScore()], )
     return model
