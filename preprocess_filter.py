@@ -9,36 +9,61 @@ from PIL import ImageStat as IS
 import os
 import glob
 from matplotlib import cm
+import seaborn as sns
 import sklearn.preprocessing as sk
 from scipy.ndimage import gaussian_filter
 
 np.set_printoptions(threshold=4000)
 
-# This function is complicated. 
-# It looks at the qauntization mask and tries to find the largest repeating sequences of 1s. 
-# It does this by adding up all of the 1s that show, and putting the size, x_start, and x_end into a dictionary. 
-# If it runs across a sequence of 1s thats larger then whats in the LS dictionary, it replaces the old sequence with the new one. 
-def get_quant_LS_index(quant): 
-    LS = {"size": 0,
-      "x_start": 0,
-      "x_end": 0}
-    current_sum = 0
-    start_x = 0
 
-    for y in range(0,len(quant)-1):
-        current_sum = 0
-        for x in range(0,len(quant[y])-1):
-            if quant[y][x] == 1:
-                current_sum += 1
-                if quant[y][x-1] == 0:
-                    start_x = x
-            if quant[y][x] == 0 and current_sum > LS['size']:
-                LS['size'] = current_sum
-                LS['x_start'] = start_x
-                LS['x_end'] = x
-                current_sum = 0
-                start_x = 0
+def longest_seq(row):
+    LS = {"x_start": 0,
+      "x_end": 0,
+      "biggest_sum": 0}
+
+    seq_sum,x_end, x_start = 0,0,0
+    for num in range(0,len(row)-1):
+        if row[num] == 0:
+            if seq_sum >= LS["biggest_sum"]:
+                x_end = num-1
+                LS["x_start"] = x_start
+                LS["x_end"] = x_end
+                LS["biggest_sum"] = seq_sum
+            seq_sum,x_end, x_start = 0,0,0
+        else:
+            seq_sum+= 1
+            if seq_sum == 1:
+                x_start = num
+    return(LS)
+
+def get_quant_stats(quant):
+    top_quant = quant[0:int(quant.shape[0]*.08), :]
+
+    LS = {"biggest_sum": 0,
+      "x_start": 0,
+      "x_end": 0,
+	  "y_longst_top": 0}
+    
+    for y in range(0, len(top_quant)-1):
+        curr_LS = longest_seq(top_quant[y])
+        if curr_LS["biggest_sum"] >= LS["biggest_sum"]:
+            LS = curr_LS
+            LS["y_longst_top"] = y
     return LS
+
+    # for y in range(0,len(top_quant)-1):
+    #     current_sum = 0
+    #     for x in range(0,len(top_quant[y])-1):
+    #         if top_quant[y][x] == 1:
+    #             current_sum += 1
+    #             if top_quant[y][x-1] == 0:
+    #                 start_x = x
+    #         elif top_quant[y][x] == 0 and current_sum > LS['size']:
+    #             LS['size'] = current_sum
+    #             LS['x_start'] = start_x
+    #             LS['x_end'] = x
+    #             LS['y_longst_top'] = y
+
 
 #quantizing to remove shadow
 def apply_quantize(pixel_values):
@@ -50,15 +75,13 @@ def apply_quantize(pixel_values):
 	q = enhancer.enhance(4)
 	q = q.quantize(10, Image.Quantize.MAXCOVERAGE)#different methods for how to quant: Quantize.MEDIANCUT, MAXCOVERAGE, FASTOCTREE
 	quant = np.array(q)
-	quant[quant != 0] = 1 # Quantizer can grab shape easier if we give it a few bins. To make a binary mask, force all non-zero values to 1
+    
+	# if there is a cosmic ray, 0 background will be set to 1 cuz of massive brighntess dif
+	# quant[quant == 1] = 0
+    # Quantizer can grab shape easier if we give it a few bins. To make a binary mask, force all non-zero values to 1
+	quant[quant != 0 ] = 1 
 
-	
 
-	#Go over 
-	for y, row in enumerate(quant):
-		zeroes = np.where(row == 0)
-		for x in zeroes:
-			pixel_values[y, x] = 0
 	return pixel_values, quant
 
 def apply_median(pixel_values):
@@ -72,7 +95,7 @@ def apply_median(pixel_values):
 			for j in np.argsort(pixel_values[i])[-21:]:
 				pixel_values[i,j] = top20[0]
 
-		#subtract med from all pixels
+		# subtract med from all pixels
 		med=np.median(pixel_values[i,:])
 		pixel_values[i,:] =[(pixel_values[i,j]-med) for j in range(n)]
 
@@ -90,7 +113,17 @@ def apply_filter(filepath):
 	idl = io.readsav((filepath))
 	pixel_values = idl.rrpi
 	pixel_values=copy.copy(pixel_values)
-	m, n = pixel_values.shape
+	y, x = pixel_values.shape
+	
+	# remove anything thats too dark
+
+	# Just so happens that shadow pixels happen to lie below 1 std from the mean
+	# And that no pixels in appropriate geometric locations lie below that point
+	flt = pixel_values.flatten()
+	p_std = flt.std()
+	p_m = flt.mean()
+
+	pixel_values[pixel_values < (p_m - p_std)] = 0
 
 
 
@@ -100,9 +133,15 @@ def apply_filter(filepath):
 	# then fill in any remaining space, and filter small values out using our quantized version. 
 	# Then tada, rectangle of non-rectangluar data!
 
+	# pixel_values = apply_median(pixel_values)
+
 	pixel_values, quant = apply_quantize(pixel_values)
-	plt.imshow(quant, cmap="gray")
-	plt.show()
+	# plt.imshow(pixel_values, cmap = "gray")
+	# plt.show()
+	# plt.imshow(quant, cmap = "gray")
+	# plt.show()
+
+
 	
 
 	
@@ -110,38 +149,24 @@ def apply_filter(filepath):
 	########################################################################
 	# crop pixel_values so that the max/min x values match the min/max non-zero x values of the quant mask
 
-	LS = get_quant_LS_index(quant)
+	LS = get_quant_stats(quant)
+	# print(LS)
+	# plt.imshow(quant, cmap="gray")
+	# plt.show()
+	# plt.imshow(pixel_values, cmap="gray")	
+	# plt.show()
+	# print(LS)
+	# # plt.imshow(pixel_values, cmap = "gray")
+	# # plt.show()
+	# plt.imshow(quant, cmap = "gray")
+	# plt.show()
 
-	pixel_values = pixel_values[:, LS["x_start"]:LS["x_end"]]
-
-	plt.imshow(pixel_values, cmap="gray")
-	plt.show()
-	
-
-	
-	################################################################
-	# The below bits of code are a list of fitlers. The two forloops seem to be doign tbe same thing, will test in a bit. 
-	# They go through the image and replace all instances of 0 values with the median of that row. 
-	# This removes the striping caused by the median filter we've seen before. 
-	# We then apply the median filter, which also removes any detected cosmic rays. 
-	# The final filter is a gaussian_filter. 
-	for i in range(len(pixel_values)):
-		for j in range(len(pixel_values[i])):
-			if pixel_values[i][j] == 0.0:
-				pixel_values[i][j] = np.median(pixel_values[i].flatten())
-
-	for i in range(len(pixel_values)):
-		pixel_values[i][pixel_values[i] == 0] = np.median(pixel_values[i,np.nonzero(pixel_values[i])[0]])
-	plt.imshow(pixel_values, cmap="gray")
-	plt.show()
-	exit()
+	ybuffer = int(y*.1)
+	xbuffer = int(x*.05)
+	# new_path = "data/testing/crop_method_test/085_SPKMVLFLP_croptesting/"+"croptestR_"+filename+".png"
 
 
-	#median and gaussian filter respectively
-	pixel_values = apply_median(pixel_values)
-
-
-	pixel_values = gaussian_filter(pixel_values, sigma = 2)
+	pixel_values = pixel_values[ybuffer:y-ybuffer, LS["x_start"]+xbuffer:LS["x_end"]-xbuffer]
 
 
 	return filename, pixel_values
@@ -153,36 +178,20 @@ def save_image(new_path, filt_image):
 	plt.savefig(new_path,bbox_inches='tight',transparent=True, pad_inches=0, dpi=300)
 	plt.close()
 
-if __name__ == "__main__":
-	# rays = ["W1597972495_1_cal.rpjb"]#, "W1597974445_1_cal.rpjb", "W1597985170_1_cal.rpjb", "W1597996870_1_cal.rpjb", "W1597997845_1_cal.rpjb"]
-	# rays_path = "../data/rpj_old/081_SPKMVLFLP/*.rpjb"
+if __name__ == '__main__':
+	testing_path = "data/testing/crop_method_test/full_test/"
+	# probelm: W1602460352
+	# suggestion: open rpi instead of rrpi and say remove anything less than 20 instead of less than 0.005
+	# print(glob.glob("2023_rpjb/good/088_SPKMVLFLP/W1602467288*.rpjb"))
 
-	# curves = ["W1612302742_1_CALIB.rpjb"]
-	# curves_path = "../data/rpj_old/102_SPKTRKLF/*.rpjb"
-	rpj_new = "/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/rpj_new/"
-	thumb = "/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/2023_thumbnails/"
-	folders = [folder+"/" for folder in glob.glob(rpj_new+"*")]
-	#folders.remove("/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/rpj_new/00A_SPKMOVPER/")
-	#folders.remove("/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/rpj_new/124_SPKMVDFHP/")
-	first_file = []
-	for folder in folders:
-		first_file.append(glob.glob(folder+"*.rpjb")[0])
-	#problem folder - 00A_SPKMOVPER/, /124_SPKMVDFHP/
-	
+	for test_img in glob.glob("data/2023_rpjb/good/117_SPKMVLFHP_001/*.rpjb"):
+		print(glob.glob("data/2023_rpjb/good/117_SPKMVLFHP_001/*.rpjb")[6])
+		exit()
+		folder = test_img.split("/")[-2]
+		filename, pixel_values = apply_filter(test_img)
+		save_image(testing_path+folder+"/"+filename+".png", pixel_values)
 
-	for filepath in ["/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/rpj_new/074_SPKLFMOV/W1593682206_1_CALIB.rpjb"]:
-		split = filepath.split("/")
-		folder = split[-2]
-		
-
-		if not os.path.exists(thumb+folder+"/"):
-			os.mkdir(thumb+folder+"/")
-		
-		filename, filt_image = apply_filter(filepath)
-		print(f"applied filter to {filename}... {first_file.index(filepath)+1}/{len(first_file)}")
-		new_thumb_path = thumb+folder+"/"+filename+".png"
-
-		save_image(new_thumb_path, filt_image)
-		
-
-
+		index = glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb").index(test_img)+1
+		length = len(glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb"))
+		print(f"{index} out of {length} done ...")
+	print("Complete!")

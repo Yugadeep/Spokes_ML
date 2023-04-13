@@ -39,6 +39,4 @@ for filepath in sorted(glob.glob(rpj_new+"**/*.rpjb")):
 
 
 
-
-
     
