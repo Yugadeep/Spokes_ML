@@ -142,7 +142,7 @@ def apply_filter(filepath):
 def save_image(new_path, filt_image):
 	plt.figure()
 	plt.axis('off')
-	fig = plt.imshow(filt_image,cmap = plt.get_cmap('gray'))
+	fig = plt.imshow(filt_image,cmap = plt.get_cmap('gray'), origin="lower")
 	plt.savefig(new_path,bbox_inches='tight',transparent=True, pad_inches=0, dpi=300)
 	plt.close()
 
