@@ -1,17 +1,17 @@
 import matplotlib.pyplot as plt
-import scipy.io as io
-import numpy as np
-import copy
-import cv2
-from PIL import Image
-from PIL import ImageEnhance as IE
-from PIL import ImageStat as IS
-import os
-import glob
 from matplotlib import cm
 import seaborn as sns
-import sklearn.preprocessing as sk
-from scipy.ndimage import gaussian_filter
+
+import numpy as np
+import glob
+import os
+
+import scipy.io as io
+import copy
+from PIL import Image
+from PIL import ImageEnhance as IE
+from spoketools import fft2lpf
+
 
 np.set_printoptions(threshold=4000)
 
@@ -122,52 +122,20 @@ def apply_filter(filepath):
 	flt = pixel_values.flatten()
 	p_std = flt.std()
 	p_m = flt.mean()
-
 	pixel_values[pixel_values < (p_m - p_std)] = 0
 
 
 
-
-	# Quantize - make a copy of the image space, but put a 1 where data is and a 0 where shadow/where data is lacking
-	# With Lucy's code, we can only filter rectangular data, so if we find max and min of x and ys of data, we can make perfect rectangle around it
-	# then fill in any remaining space, and filter small values out using our quantized version. 
-	# Then tada, rectangle of non-rectangluar data!
-
-	# pixel_values = apply_median(pixel_values)
-
 	pixel_values, quant = apply_quantize(pixel_values)
-	# plt.imshow(pixel_values, cmap = "gray")
-	# plt.show()
-	# plt.imshow(quant, cmap = "gray")
-	# plt.show()
-
-
-	
-
-	
-
-	########################################################################
-	# crop pixel_values so that the max/min x values match the min/max non-zero x values of the quant mask
-
 	LS = get_quant_stats(quant)
-	# print(LS)
-	# plt.imshow(quant, cmap="gray")
-	# plt.show()
-	# plt.imshow(pixel_values, cmap="gray")	
-	# plt.show()
-	# print(LS)
-	# # plt.imshow(pixel_values, cmap = "gray")
-	# # plt.show()
-	# plt.imshow(quant, cmap = "gray")
-	# plt.show()
+
 
 	ybuffer = int(y*.1)
 	xbuffer = int(x*.05)
-	# new_path = "data/testing/crop_method_test/085_SPKMVLFLP_croptesting/"+"croptestR_"+filename+".png"
-
-
 	pixel_values = pixel_values[ybuffer:y-ybuffer, LS["x_start"]+xbuffer:LS["x_end"]-xbuffer]
 
+	pixel_values = apply_median(pixel_values)
+	pixel_values = fft2lpf(pixel_values)    
 
 	return filename, pixel_values
 
@@ -179,19 +147,27 @@ def save_image(new_path, filt_image):
 	plt.close()
 
 if __name__ == '__main__':
-	testing_path = "data/testing/crop_method_test/full_test/"
+	testing_path = "data/2023_imagery/filtered/"
 	# probelm: W1602460352
 	# suggestion: open rpi instead of rrpi and say remove anything less than 20 instead of less than 0.005
 	# print(glob.glob("2023_rpjb/good/088_SPKMVLFLP/W1602467288*.rpjb"))
 
-	for test_img in glob.glob("data/2023_rpjb/good/117_SPKMVLFHP_001/*.rpjb"):
-		print(glob.glob("data/2023_rpjb/good/117_SPKMVLFHP_001/*.rpjb")[6])
-		exit()
+	for test_img in glob.glob("data/2023_rpjb/good/*/*.rpjb"):
 		folder = test_img.split("/")[-2]
 		filename, pixel_values = apply_filter(test_img)
-		save_image(testing_path+folder+"/"+filename+".png", pixel_values)
 
-		index = glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb").index(test_img)+1
-		length = len(glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb"))
-		print(f"{index} out of {length} done ...")
+		if not os.path.exists(testing_path+folder+"/"+filename+".png"):
+			if not os.path.exists(testing_path+folder+"/"):
+				os.mkdir(testing_path+folder+"/")
+
+			save_image(testing_path+folder+"/"+filename+".png", pixel_values)
+
+			index = glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb").index(test_img)+1
+			length = len(glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb"))
+			print(f"{folder}: {index} out of {length} done ...")
+		else:
+			index = glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb").index(test_img)+1
+			length = len(glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb"))
+			print(f"{folder}: {index} out of {length} exists already!")
+		
 	print("Complete!")

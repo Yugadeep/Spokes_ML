@@ -10,12 +10,12 @@ import copy
 def save_image(new_path, pixel_values):
 	plt.figure()
 	plt.axis('off')
-	fig = plt.imshow(pixel_values,cmap = plt.get_cmap('gray'))
+	fig = plt.imshow(pixel_values,cmap = plt.get_cmap('gray'), origin="lower")
 	plt.savefig(new_path,bbox_inches='tight',transparent=True, pad_inches=0, dpi=300)
 	plt.close()
 
-rpj_new = "/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/rpj_new/SpokeDataGroup2/"
-thumb = "/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/2023_thumbnails/SpokeDataGroup2_thumbnails/"
+rpj_new = "/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/2023_rpjb/all/"
+thumb = "/Users/willbyrne/Documents/work/code/hamilton/unet_spokes/data/2023_imagery/thumbnails/all/"
 folders = [folder+"/" for folder in glob.glob(rpj_new+"*")]
 folder = ""
 
