@@ -51,18 +51,6 @@ def get_quant_stats(quant):
             LS["y_longst_top"] = y
     return LS
 
-    # for y in range(0,len(top_quant)-1):
-    #     current_sum = 0
-    #     for x in range(0,len(top_quant[y])-1):
-    #         if top_quant[y][x] == 1:
-    #             current_sum += 1
-    #             if top_quant[y][x-1] == 0:
-    #                 start_x = x
-    #         elif top_quant[y][x] == 0 and current_sum > LS['size']:
-    #             LS['size'] = current_sum
-    #             LS['x_start'] = start_x
-    #             LS['x_end'] = x
-    #             LS['y_longst_top'] = y
 
 
 #quantizing to remove shadow
@@ -84,17 +72,22 @@ def apply_quantize(pixel_values):
 
 	return pixel_values, quant
 
-def apply_median(pixel_values):
 
+def remove_cosmic_rays(pixel_values):
+    m,n=pixel_values.shape
+
+    for i in range(0, m):
+        top20 = np.sort(pixel_values[i])[-21:]
+        for j in np.argsort(pixel_values[i])[-21:]:
+            pixel_values[i,j] = top20[0]        
+
+    return pixel_values
+
+# What do about lucys code?
+def apply_lucy_median(pixel_values):
 	m,n=pixel_values.shape
 
 	for i in range(m):
-		# removes the top 20 brightest pixels by replacing them with the 21st brightest per row of pixels
-		top20 = np.sort(pixel_values[i])[-21:]
-		if top20[20]-top20[0] > 2*top20.std():
-			for j in np.argsort(pixel_values[i])[-21:]:
-				pixel_values[i,j] = top20[0]
-
 		# subtract med from all pixels
 		med=np.median(pixel_values[i,:])
 		pixel_values[i,:] =[(pixel_values[i,j]-med) for j in range(n)]
@@ -114,6 +107,10 @@ def apply_filter(filepath):
 	pixel_values = idl.rrpi
 	pixel_values=copy.copy(pixel_values)
 	y, x = pixel_values.shape
+	plt.imshow(pixel_values, cmap='gray', origin='lower')
+	plt.show()
+        
+	pixel_values = remove_cosmic_rays(pixel_values)
 	
 	# remove anything thats too dark
 
@@ -133,9 +130,21 @@ def apply_filter(filepath):
 	ybuffer = int(y*.1)
 	xbuffer = int(x*.05)
 	pixel_values = pixel_values[ybuffer:y-ybuffer, LS["x_start"]+xbuffer:LS["x_end"]-xbuffer]
+	plt.imshow(pixel_values, cmap='gray', origin='lower')
+	plt.show()
+
+	# add the buffer thing here
+
+	
 
 	pixel_values = apply_median(pixel_values)
-	pixel_values = fft2lpf(pixel_values)    
+	plt.imshow(pixel_values, cmap='gray', origin='lower')
+	plt.show()
+
+	pixel_values = fft2lpf(pixel_values)
+	plt.imshow(pixel_values, cmap='gray', origin='lower')
+	plt.show()
+	exit()
 
 	return filename, pixel_values
 
@@ -152,22 +161,27 @@ if __name__ == '__main__':
 	# suggestion: open rpi instead of rrpi and say remove anything less than 20 instead of less than 0.005
 	# print(glob.glob("2023_rpjb/good/088_SPKMVLFLP/W1602467288*.rpjb"))
 
-	for test_img in glob.glob("data/2023_rpjb/good/*/*.rpjb"):
-		folder = test_img.split("/")[-2]
-		filename, pixel_values = apply_filter(test_img)
+	image_path = glob.glob(f"data/2023_rpjb/good/*/{'W1597978345'}*")
+	print(image_path)
+	apply_filter(image_path[0])
+	
 
-		if not os.path.exists(testing_path+folder+"/"+filename+".png"):
-			if not os.path.exists(testing_path+folder+"/"):
-				os.mkdir(testing_path+folder+"/")
+	# for test_img in glob.glob("data/2023_rpjb/good/*/*.rpjb"):
+	# 	folder = test_img.split("/")[-2]
+	# 	filename, pixel_values = apply_filter(test_img)
 
-			save_image(testing_path+folder+"/"+filename+".png", pixel_values)
+	# 	if not os.path.exists(testing_path+folder+"/"+filename+".png"):
+	# 		if not os.path.exists(testing_path+folder+"/"):
+	# 			os.mkdir(testing_path+folder+"/")
 
-			index = glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb").index(test_img)+1
-			length = len(glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb"))
-			print(f"{folder}: {index} out of {length} done ...")
-		else:
-			index = glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb").index(test_img)+1
-			length = len(glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb"))
-			print(f"{folder}: {index} out of {length} exists already!")
+	# 		save_image(testing_path+folder+"/"+filename+".png", pixel_values)
+
+	# 		index = glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb").index(test_img)+1
+	# 		length = len(glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb"))
+	# 		print(f"{folder}: {index} out of {length} done ...")
+	# 	else:
+	# 		index = glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb").index(test_img)+1
+	# 		length = len(glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb"))
+	# 		print(f"{folder}: {index} out of {length} exists already!")
 		
 	print("Complete!")
