@@ -10,6 +10,9 @@ import scipy.io as io
 import copy
 from PIL import Image
 from PIL import ImageEnhance as IE
+
+import sys
+sys.path.insert(1, '../../spokes_gridtools/Research2022/spokes/src')
 from spoketools import fft2lpf
 
 
@@ -50,8 +53,6 @@ def get_quant_stats(quant):
             LS = curr_LS
             LS["y_longst_top"] = y
     return LS
-
-
 
 #quantizing to remove shadow
 def apply_quantize(pixel_values):
@@ -94,6 +95,34 @@ def apply_lucy_median(pixel_values):
 
 	return pixel_values
 
+def buffer_image(pixel_values, propper_x, propper_y):
+    med = np.median(pixel_values.flatten())
+    old_y, old_x = pixel_values.shape
+
+    # These propper values are reliant on the cropping alrogithm. That means I'll need to change these later. 
+
+    act_x = 0
+    act_y = 0
+
+    if propper_y >= old_y:
+        act_y = propper_y
+    else:
+        act_y = old_y
+
+    if propper_x >= old_x:
+        act_x = propper_x
+    else:
+        act_x = old_x
+    
+    biggest_dems = np.empty((act_y, act_x))
+    biggest_dems.fill(med)
+
+    biggest_dems[:pixel_values.shape[0],:pixel_values.shape[1]] = pixel_values
+    pixel_values = biggest_dems[:propper_y, :propper_x]
+    
+    
+    return pixel_values
+
 
 
 def apply_filter(filepath):
@@ -121,12 +150,12 @@ def apply_filter(filepath):
 	p_m = flt.mean()
 	pixel_values[pixel_values < (p_m - p_std)] = 0
 
-
-
+	#removing cosmic rays
+	pixel_values = remove_cosmic_rays(pixel_values)
+        
 	pixel_values, quant = apply_quantize(pixel_values)
 	LS = get_quant_stats(quant)
-
-
+    
 	ybuffer = int(y*.1)
 	xbuffer = int(x*.05)
 	pixel_values = pixel_values[ybuffer:y-ybuffer, LS["x_start"]+xbuffer:LS["x_end"]-xbuffer]
@@ -134,7 +163,7 @@ def apply_filter(filepath):
 	plt.show()
 
 	# add the buffer thing here
-
+	pixel_values = buffer_image(pixel_values, propper_x=1488, propper_y=336)
 	
 
 	pixel_values = apply_median(pixel_values)
