@@ -1,4 +1,4 @@
-../../../data/2023_imagery/filtered/117_SPKMVLFHP_004/W1630586301.png
+../../../data/2023_imagery/filtered/117_SPKMVLFHP_004/bad_bad_W1630586301.png
 ../../../data/2023_imagery/filtered/134_SPKMVDFHP_003/W1656849098.png
 ../../../data/2023_imagery/filtered/134_SPKMVDFHP_003/W1656844988.png
 ../../../data/2023_imagery/filtered/134_SPKMVDFHP_003/W1656857318.png

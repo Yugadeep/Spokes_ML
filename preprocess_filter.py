@@ -11,9 +11,9 @@ import copy
 from PIL import Image
 from PIL import ImageEnhance as IE
 
-import sys
-sys.path.insert(1, '../../spokes_gridtools/Research2022/spokes/src')
-from spoketools import fft2lpf
+# import sys
+# sys.path.insert(1, '../../spokes_gridtools/Research2022/spokes/src')
+# from spoketools import fft2lpf
 
 
 np.set_printoptions(threshold=4000)
@@ -136,8 +136,7 @@ def apply_filter(filepath):
 	pixel_values = idl.rrpi
 	pixel_values=copy.copy(pixel_values)
 	y, x = pixel_values.shape
-	plt.imshow(pixel_values, cmap='gray', origin='lower')
-	plt.show()
+
         
 	pixel_values = remove_cosmic_rays(pixel_values)
 	
@@ -150,30 +149,20 @@ def apply_filter(filepath):
 	p_m = flt.mean()
 	pixel_values[pixel_values < (p_m - p_std)] = 0
 
-	#removing cosmic rays
-	pixel_values = remove_cosmic_rays(pixel_values)
-        
+
 	pixel_values, quant = apply_quantize(pixel_values)
 	LS = get_quant_stats(quant)
     
 	ybuffer = int(y*.1)
 	xbuffer = int(x*.05)
 	pixel_values = pixel_values[ybuffer:y-ybuffer, LS["x_start"]+xbuffer:LS["x_end"]-xbuffer]
-	plt.imshow(pixel_values, cmap='gray', origin='lower')
-	plt.show()
+	
 
 	# add the buffer thing here
 	pixel_values = buffer_image(pixel_values, propper_x=1488, propper_y=336)
-	
-
-	pixel_values = apply_median(pixel_values)
-	plt.imshow(pixel_values, cmap='gray', origin='lower')
-	plt.show()
 
 	pixel_values = fft2lpf(pixel_values)
-	plt.imshow(pixel_values, cmap='gray', origin='lower')
-	plt.show()
-	exit()
+
 
 	return filename, pixel_values
 
@@ -181,6 +170,8 @@ def save_image(new_path, filt_image):
 	plt.figure()
 	plt.axis('off')
 	fig = plt.imshow(filt_image,cmap = plt.get_cmap('gray'), origin="lower")
+    
+	# The settings here save an imag with no pading, no ticks, and have an image dpi size of 300
 	plt.savefig(new_path,bbox_inches='tight',transparent=True, pad_inches=0, dpi=300)
 	plt.close()
 
