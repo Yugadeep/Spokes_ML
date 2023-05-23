@@ -11,9 +11,9 @@ import copy
 from PIL import Image
 from PIL import ImageEnhance as IE
 
-# import sys
-# sys.path.insert(1, '../../spokes_gridtools/Research2022/spokes/src')
-# from spoketools import fft2lpf
+import sys
+sys.path.insert(1, '../../spokes_gridtools/Research2022/spokes/src')
+from spoketools import fft2lpf
 
 
 np.set_printoptions(threshold=4000)
@@ -161,7 +161,7 @@ def apply_filter(filepath):
 	# add the buffer thing here
 	pixel_values = buffer_image(pixel_values, propper_x=1488, propper_y=336)
 
-	pixel_values = fft2lpf(pixel_values)
+	pixel_values = fft2lpf(pixel_values, 0, 3)
 
 
 	return filename, pixel_values
@@ -177,7 +177,7 @@ def save_image(new_path, filt_image):
 
 if __name__ == '__main__':
 	testing_path = "data/2023_imagery/filtered/"
-	# probelm: W1602460352
+	# problem: W1602460352
 	# suggestion: open rpi instead of rrpi and say remove anything less than 20 instead of less than 0.005
 	# print(glob.glob("2023_rpjb/good/088_SPKMVLFLP/W1602467288*.rpjb"))
 
