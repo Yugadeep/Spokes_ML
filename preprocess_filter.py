@@ -11,6 +11,7 @@ import copy
 from PIL import Image
 from PIL import ImageEnhance as IE
 
+# Find a better way to import this
 import sys
 sys.path.insert(1, '../../spokes_gridtools/Research2022/spokes/src')
 from spoketools import fft2lpf
@@ -18,7 +19,7 @@ from spoketools import fft2lpf
 
 np.set_printoptions(threshold=4000)
 
-
+# Find the longest sequence of repeating 1s in a row. Record the end indexes, and the length of the sequence. 
 def longest_seq(row):
     LS = {"x_start": 0,
       "x_end": 0,
@@ -39,6 +40,7 @@ def longest_seq(row):
                 x_start = num
     return(LS)
 
+# run longest sequence over all rows of pixel_values. Record the longest sequence in the top 8% of rows. 
 def get_quant_stats(quant):
     top_quant = quant[0:int(quant.shape[0]*.08), :]
 
@@ -73,7 +75,7 @@ def apply_quantize(pixel_values):
 
 	return pixel_values, quant
 
-
+# removes cosmic rays from the image. Might need to increase the total number of brightest values that get replaced.
 def remove_cosmic_rays(pixel_values):
     m,n=pixel_values.shape
 
@@ -84,7 +86,7 @@ def remove_cosmic_rays(pixel_values):
 
     return pixel_values
 
-# What do about lucys code?
+# "Median filter" that lucy came up with. Does not follow the traiditonal median filter style
 def apply_lucy_median(pixel_values):
 	m,n=pixel_values.shape
 
@@ -92,9 +94,14 @@ def apply_lucy_median(pixel_values):
 		# subtract med from all pixels
 		med=np.median(pixel_values[i,:])
 		pixel_values[i,:] =[(pixel_values[i,j]-med) for j in range(n)]
+    
+	minda=(min(pixel_values.flatten()))
+	for i in range(m):
+		pixel_values[i,:]=[(pixel_values[i,j]+abs(minda)) for j in range(n)]
 
 	return pixel_values
 
+# Adds a buffer to the image that makes sure the image has the given dimensions. 
 def buffer_image(pixel_values, propper_x, propper_y):
     med = np.median(pixel_values.flatten())
     old_y, old_x = pixel_values.shape
@@ -123,9 +130,23 @@ def buffer_image(pixel_values, propper_x, propper_y):
     
     return pixel_values
 
+# saves the new image to the given path with no figure marks
+def save_image(new_path, filt_image):
+	plt.figure()
+	plt.axis('off')
+	fig = plt.imshow(filt_image,cmap = plt.get_cmap('gray'), origin="lower")
+    
+	# The settings here save an imag with no pading, no ticks, and have an image dpi size of 300
+	plt.savefig(new_path,bbox_inches='tight',transparent=True, pad_inches=0, dpi=300)
+	plt.close()
 
 
-def apply_filter(filepath):
+
+
+# Calls all filters in the propper order. 
+def apply_filters(filepath, plots=None):
+    # If you call this function, use this dicitonary to quicly choose which plots you want to show at what stage. 
+	# plots = {'raw' = False, 'cosmic_ray' = False, 'outside_zero' = False, 'quant' = False, 'cropped' = False, 'lucy_median' = False, 'forrier' = False}
 
 	# W1600545658_1_cal.rpjb, W1597976395_1_cal.rpj1
 	# reading file into data
@@ -136,9 +157,15 @@ def apply_filter(filepath):
 	pixel_values = idl.rrpi
 	pixel_values=copy.copy(pixel_values)
 	y, x = pixel_values.shape
+	if plots['raw'] == True:
+		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
+		plt.show()
 
-        
+    
 	pixel_values = remove_cosmic_rays(pixel_values)
+	if plots['cosmic_ray'] == True:
+		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
+		plt.show()
 	
 	# remove anything thats too dark
 
@@ -148,33 +175,44 @@ def apply_filter(filepath):
 	p_std = flt.std()
 	p_m = flt.mean()
 	pixel_values[pixel_values < (p_m - p_std)] = 0
+	if plots['outside_zero'] == True:
+		print('outside_zero')
+		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
+		plt.show()
 
 
 	pixel_values, quant = apply_quantize(pixel_values)
 	LS = get_quant_stats(quant)
+	if plots['quant'] == True:
+		print('quant')
+		plt.imshow(quant, cmap = 'gray', origin = 'lower')
+		plt.show()
     
 	ybuffer = int(y*.1)
 	xbuffer = int(x*.05)
 	pixel_values = pixel_values[ybuffer:y-ybuffer, LS["x_start"]+xbuffer:LS["x_end"]-xbuffer]
+	if plots['cropped'] == True:
+		print('cropped')
+		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
+		plt.show()
 	
+	pixel_values = apply_lucy_median(pixel_values)
+	if plots['lucy_median'] == True:
+		print('lucy_median')
+		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
+		plt.show()
 
-	# add the buffer thing here
-	pixel_values = buffer_image(pixel_values, propper_x=1488, propper_y=336)
 
 	pixel_values = fft2lpf(pixel_values, 0, 3)
-
+	if plots['forrier'] == True:
+		print('forrier')
+		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
+		plt.show()	
 
 	return filename, pixel_values
 
-def save_image(new_path, filt_image):
-	plt.figure()
-	plt.axis('off')
-	fig = plt.imshow(filt_image,cmap = plt.get_cmap('gray'), origin="lower")
-    
-	# The settings here save an imag with no pading, no ticks, and have an image dpi size of 300
-	plt.savefig(new_path,bbox_inches='tight',transparent=True, pad_inches=0, dpi=300)
-	plt.close()
 
+# used to make the ~2000 training images
 if __name__ == '__main__':
 	testing_path = "data/2023_imagery/filtered/"
 	# problem: W1602460352
@@ -183,25 +221,5 @@ if __name__ == '__main__':
 
 	image_path = glob.glob(f"data/2023_rpjb/good/*/{'W1597978345'}*")
 	print(image_path)
-	apply_filter(image_path[0])
-	
-
-	# for test_img in glob.glob("data/2023_rpjb/good/*/*.rpjb"):
-	# 	folder = test_img.split("/")[-2]
-	# 	filename, pixel_values = apply_filter(test_img)
-
-	# 	if not os.path.exists(testing_path+folder+"/"+filename+".png"):
-	# 		if not os.path.exists(testing_path+folder+"/"):
-	# 			os.mkdir(testing_path+folder+"/")
-
-	# 		save_image(testing_path+folder+"/"+filename+".png", pixel_values)
-
-	# 		index = glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb").index(test_img)+1
-	# 		length = len(glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb"))
-	# 		print(f"{folder}: {index} out of {length} done ...")
-	# 	else:
-	# 		index = glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb").index(test_img)+1
-	# 		length = len(glob.glob(f"data/2023_rpjb/good/{folder}/*.rpjb"))
-	# 		print(f"{folder}: {index} out of {length} exists already!")
-		
+	apply_filters(image_path[0])
 	print("Complete!")
