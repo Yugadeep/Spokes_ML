@@ -11,10 +11,6 @@ import copy
 from PIL import Image
 from PIL import ImageEnhance as IE
 
-# Find a better way to import this
-import sys
-sys.path.insert(1, '../../spokes_gridtools/Research2022/spokes/src')
-from spoketools import fft2lpf
 
 
 np.set_printoptions(threshold=4000)
@@ -90,45 +86,74 @@ def remove_cosmic_rays(pixel_values):
 def apply_lucy_median(pixel_values):
 	m,n=pixel_values.shape
 
+	# First step. subtract the median of a given row of pixels from each pixel in that row
+	# fix this so that if pixel_value - min < 0, set pixel_value to 0
 	for i in range(m):
-		# subtract med from all pixels
 		med=np.median(pixel_values[i,:])
-		pixel_values[i,:] =[(pixel_values[i,j]-med) for j in range(n)]
+		pixel_values[i,:] = [(pixel_values[i,j]-med) for j in range(n)]
     
-	minda=(min(pixel_values.flatten()))
-	for i in range(m):
-		pixel_values[i,:]=[(pixel_values[i,j]+abs(minda)) for j in range(n)]
+	# second step. Add absolute value of the lowest value pixel of a given image to each pixel 
 
 	return pixel_values
 
-# Adds a buffer to the image that makes sure the image has the given dimensions. 
+# Adds a buffer to the image that makes sure the image has the given dimensions.
+# This is dumb, will add more comments later.  
 def buffer_image(pixel_values, propper_x, propper_y):
+    
+    def pad_with(vector, pad_width, iaxis, kwargs):
+        pad_value = kwargs.get('padder', 10)
+        vector[:pad_width[0]] = pad_value
+        vector[-pad_width[1]:] = pad_value
+
+
     med = np.median(pixel_values.flatten())
-    old_y, old_x = pixel_values.shape
-
-    # These propper values are reliant on the cropping alrogithm. That means I'll need to change these later. 
-
+    old_y, old_x = pixel_values.shape	
+    # These propper values are reliant on the cropping alrogithm. That means I'll need to change these later. 	
     act_x = 0
-    act_y = 0
-
+    act_y = 0	    
     if propper_y >= old_y:
         act_y = propper_y
     else:
-        act_y = old_y
-
+        act_y = old_y	
     if propper_x >= old_x:
         act_x = propper_x
     else:
         act_x = old_x
-    
-    biggest_dems = np.empty((act_y, act_x))
-    biggest_dems.fill(med)
 
-    biggest_dems[:pixel_values.shape[0],:pixel_values.shape[1]] = pixel_values
-    pixel_values = biggest_dems[:propper_y, :propper_x]
+
+    x_pad = int((propper_x - old_x)/2)+1
+    y_pad = int((propper_y - old_y)/2)+1
+    real_pad = 0
+
+    if x_pad > y_pad:
+        real_pad = x_pad
+    else:
+        real_pad = y_pad
     
+    print(x_pad)
+    print(y_pad)
+    print(real_pad)
+    biggest_dems = np.pad(pixel_values, real_pad, pad_with, padder=med)
+
+    print(biggest_dems.shape)
+
+    while biggest_dems.shape[1] != propper_x:
+        if biggest_dems.shape[1] % 2 == 0:
+            biggest_dems = biggest_dems[:, :biggest_dems.shape[1]-1]
+        else:
+            biggest_dems = biggest_dems[:, 1:]
+
+    while biggest_dems.shape[0] != propper_y:
+        if biggest_dems.shape[0] % 2 == 0:
+            biggest_dems = biggest_dems[:biggest_dems.shape[0]-1, :]
+        else:
+            biggest_dems = biggest_dems[1:, :]
+        
     
-    return pixel_values
+
+    print(biggest_dems.shape)
+
+    return biggest_dems
 
 # saves the new image to the given path with no figure marks
 def save_image(new_path, filt_image):
@@ -146,7 +171,8 @@ def save_image(new_path, filt_image):
 # Calls all filters in the propper order. 
 def apply_filters(filepath, plots=None):
     # If you call this function, use this dicitonary to quicly choose which plots you want to show at what stage. 
-	# plots = {'raw' = False, 'cosmic_ray' = False, 'outside_zero' = False, 'quant' = False, 'cropped' = False, 'lucy_median' = False, 'forrier' = False}
+	if plots == None:
+		plots = {'raw': False, 'cosmic_ray': False, 'outside_zero' : False, 'quant' : False, 'cropped' : False, 'lucy_median': False, 'forrier':False}
 
 	# W1600545658_1_cal.rpjb, W1597976395_1_cal.rpj1
 	# reading file into data
@@ -158,12 +184,14 @@ def apply_filters(filepath, plots=None):
 	pixel_values=copy.copy(pixel_values)
 	y, x = pixel_values.shape
 	if plots['raw'] == True:
+		print('raw')
 		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
 		plt.show()
 
     
 	pixel_values = remove_cosmic_rays(pixel_values)
 	if plots['cosmic_ray'] == True:
+		print('cosmic_ray')
 		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
 		plt.show()
 	
@@ -179,7 +207,6 @@ def apply_filters(filepath, plots=None):
 		print('outside_zero')
 		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
 		plt.show()
-
 
 	pixel_values, quant = apply_quantize(pixel_values)
 	LS = get_quant_stats(quant)
@@ -201,13 +228,8 @@ def apply_filters(filepath, plots=None):
 		print('lucy_median')
 		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
 		plt.show()
+    
 
-
-	pixel_values = fft2lpf(pixel_values, 0, 3)
-	if plots['forrier'] == True:
-		print('forrier')
-		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
-		plt.show()	
 
 	return filename, pixel_values
 
