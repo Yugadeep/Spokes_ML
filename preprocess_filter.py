@@ -130,12 +130,9 @@ def buffer_image(pixel_values, propper_x, propper_y):
     else:
         real_pad = y_pad
     
-    print(x_pad)
-    print(y_pad)
-    print(real_pad)
+
     biggest_dems = np.pad(pixel_values, real_pad, pad_with, padder=med)
 
-    print(biggest_dems.shape)
 
     while biggest_dems.shape[1] != propper_x:
         if biggest_dems.shape[1] % 2 == 0:
@@ -151,28 +148,18 @@ def buffer_image(pixel_values, propper_x, propper_y):
         
     
 
-    print(biggest_dems.shape)
 
     return biggest_dems
 
 # saves the new image to the given path with no figure marks
 def save_image(new_path, filt_image):
-	plt.figure()
-	plt.axis('off')
-	fig = plt.imshow(filt_image,cmap = plt.get_cmap('gray'), origin="lower")
-    
-	# The settings here save an imag with no pading, no ticks, and have an image dpi size of 300
-	plt.savefig(new_path,bbox_inches='tight',transparent=True, pad_inches=0, dpi=300)
-	plt.close()
-
+    plt.imsave(fname=new_path, arr=filt_image, cmap='gray', format='png', origin="lower")
 
 
 
 # Calls all filters in the propper order. 
-def apply_filters(filepath, plots=None):
-    # If you call this function, use this dicitonary to quicly choose which plots you want to show at what stage. 
-	if plots == None:
-		plots = {'raw': False, 'cosmic_ray': False, 'outside_zero' : False, 'quant' : False, 'cropped' : False, 'lucy_median': False, 'forrier':False}
+def apply_filters(filepath, plots = {'raw': False, 'cosmic_ray': False, 'outside_zero' : False, 'quant' : False, 'cropped' : False, 'lucy_median': False, 'forrier':False}):
+		
 
 	# W1600545658_1_cal.rpjb, W1597976395_1_cal.rpj1
 	# reading file into data
@@ -222,15 +209,12 @@ def apply_filters(filepath, plots=None):
 		print('cropped')
 		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
 		plt.show()
-	
 	pixel_values = apply_lucy_median(pixel_values)
 	if plots['lucy_median'] == True:
 		print('lucy_median')
 		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
 		plt.show()
     
-
-
 	return filename, pixel_values
 
 
