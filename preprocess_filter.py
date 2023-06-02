@@ -209,11 +209,11 @@ def apply_filters(filepath, plots = {'raw': False, 'cosmic_ray': False, 'outside
 		print('cropped')
 		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
 		plt.show()
-	pixel_values = apply_lucy_median(pixel_values)
-	if plots['lucy_median'] == True:
-		print('lucy_median')
-		plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
-		plt.show()
+	# pixel_values = apply_lucy_median(pixel_values)
+	# if plots['lucy_median'] == True:
+	# 	print('lucy_median')
+	# 	plt.imshow(pixel_values, cmap = 'gray', origin = 'lower')
+	# 	plt.show()
     
 	return filename, pixel_values
 

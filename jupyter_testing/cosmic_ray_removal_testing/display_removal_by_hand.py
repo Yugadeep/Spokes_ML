@@ -10,7 +10,7 @@ import spoketools
 def opusid_to_rpjb_path(opus_id):
     rpjb_path = None
     # print(glob.glob("hamilton/unet_spokes/data/2023_rpjb/good/*/"))
-    temp_list = glob.glob(f"hamilton/unet_spokes/data/2023_rpjb/good/*/{opus_id}*.rpjb")
+    temp_list = glob.glob(f"data/2023_rpjb/good/*/{opus_id}*.rpjb")
     if len(temp_list) == 1:
         rpjb_path = temp_list[0]
     elif len(temp_list) == 0:
@@ -35,7 +35,7 @@ plots['lucy_median'] = True
 # looks like both of the above features persit through all of their respective folders
 
 individual = []
-individual.append("W1771094892")
+individual.append("W1630452090")
 
 
 for opus_id in individual:
