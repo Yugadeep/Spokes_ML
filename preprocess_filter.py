@@ -130,21 +130,26 @@ def buffer_image(pixel_values, propper_x, propper_y):
     else:
         real_pad = y_pad
     
+    if real_pad < 0:
+        mid_y = int(old_y/2)
+        mid_x = int(old_x/2)
 
-    biggest_dems = np.pad(pixel_values, real_pad, pad_with, padder=med)
+        biggest_dems = pixel_values[mid_y-80:mid_y+80, mid_x-368:mid_x+368]
+    else:
+        biggest_dems = np.pad(pixel_values, real_pad, pad_with, padder=med)
 
 
-    while biggest_dems.shape[1] != propper_x:
-        if biggest_dems.shape[1] % 2 == 0:
-            biggest_dems = biggest_dems[:, :biggest_dems.shape[1]-1]
-        else:
-            biggest_dems = biggest_dems[:, 1:]
-
-    while biggest_dems.shape[0] != propper_y:
-        if biggest_dems.shape[0] % 2 == 0:
-            biggest_dems = biggest_dems[:biggest_dems.shape[0]-1, :]
-        else:
-            biggest_dems = biggest_dems[1:, :]
+        while biggest_dems.shape[1] != propper_x:
+            if biggest_dems.shape[1] % 2 == 0:
+                biggest_dems = biggest_dems[:, :biggest_dems.shape[1]-1]
+            else:
+                biggest_dems = biggest_dems[:, 1:]
+    
+        while biggest_dems.shape[0] != propper_y:
+            if biggest_dems.shape[0] % 2 == 0:
+                biggest_dems = biggest_dems[:biggest_dems.shape[0]-1, :]
+            else:
+                biggest_dems = biggest_dems[1:, :]
         
     
 
