@@ -35,7 +35,7 @@ plots['lucy_median'] = True
 # looks like both of the above features persit through all of their respective folders
 
 individual = []
-individual.append("W1630452090")
+individual.append("W1606352703")
 
 
 for opus_id in individual:
