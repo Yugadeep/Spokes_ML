@@ -21,15 +21,12 @@ def get_order(file):
 
 #Albumentation function:
 aug = alb.Compose([
-    alb.VerticalFlip(),
-    alb.HorizontalFlip(),
-    alb.PixelDropout(),
-    alb.GridDistortion()], 
+    alb.ShiftScaleRotate(scale_limit=0, rotate_limit=0, shift_limit_x = 0, p=1)], 
     additional_targets={'image' : 'mask'}
 )
 
-
 def augment_semantic_set(X, Y, aug_num = 2):
+    folder_path = "data/training/dark/augmentation/"
 
     for image, mask in zip(X,Y):
             for i in range(0, aug_num):
