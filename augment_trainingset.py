@@ -21,7 +21,7 @@ def get_order(file):
 
 #Albumentation function:
 aug = alb.Compose([
-    alb.ShiftScaleRotate(scale_limit=0, rotate_limit=0, shift_limit_x = 0, p=1)], 
+    alb.ShiftScaleRotate(scale_limit=0, rotate_limit=0, shift_limit_y = 0, p=1)], 
     additional_targets={'image' : 'mask'}
 )
 
