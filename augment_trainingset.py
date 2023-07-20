@@ -44,7 +44,7 @@ import numpy as np
 #4 RandomBrightnessContrast()
 #5 PixelDropout()
 #6 CLAHE()
-#7 RandomScale()
+#7 Sharpen()
 
 
 
