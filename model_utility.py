@@ -3,8 +3,10 @@ from tensorflow import keras
 from keras.layers import Input, Conv2D
 from keras.models import Model
 from keras.utils import normalize
-import segmentation_models as sm
+# import segmentation_models as sm
 from sklearn.model_selection import train_test_split
+import augment_trainingset
+
 
 
 #path sorting
@@ -29,7 +31,10 @@ def get_order(file):
 
 
 
-def display_results(results_path):
+def display_results(results_path, axs = None):
+    if axs is None:
+        axs = plt.gca()
+
     with open(results_path) as json_file:
         results = json.load(json_file)
 
@@ -40,22 +45,24 @@ def display_results(results_path):
     val_iou_score = results['val_iou_score']
     loss = results['loss']
     val_loss = results['val_loss']
+    eval_results = results['eval_results']
 
     epochs = range(1, len(iou_score) + 1)
+    # plt.figure()
+    axs.plot(epochs, iou_score, 'bo', label='Training acc')
+    axs.plot(epochs, val_iou_score, 'b', label='Validation acc')
+    axs.text(300,.6,f'{round(val_iou_score[-1], 3)}',horizontalalignment='right')
+    axs.set_title(f'{type}')
+    axs.legend(loc = "lower right")
 
-    plt.plot(epochs, iou_score, 'bo', label='Training acc')
-    plt.plot(epochs, val_iou_score, 'b', label='Validation acc')
-    plt.title(f'{type} Spoke Training and validation accuracy')
-    plt.legend()
 
-    plt.figure()
-    plt.yscale("log")
-    plt.plot(epochs, loss, 'bo', label='Training loss')
-    plt.plot(epochs, val_loss, 'b', label='Validation loss')
-    plt.title(f'{type} Spoke Training and validation loss')
-    plt.legend()
+    # plt.yscale("log")
+    # plt.plot(epochs, loss, 'bo', label='Training loss')
+    # plt.plot(epochs, val_loss, 'b', label='Validation loss')
+    # plt.title(f'{type} Spoke Training and validation loss')
+    # plt.legend()
 
-    plt.show()
+    # plt.show()
     print("Last Train IOU Score: ",results['iou_score'][-1])
     print("Last Train Loss Score: ", results['loss'][-1])
     print("Last Validation IOU Score: ", results['val_iou_score'][-1])
@@ -64,20 +71,35 @@ def display_results(results_path):
 
 
 
-def data_gather(X, Y, training_path = "../training/"):
+def data_gather(X, Y, image_type="light_spokes_training_images", mask_type="light_spokes_training_masks", training_path = "../training/", aug_flag = 0, aug_num = 0):
 
-    training_path = "../datasets/"    
+    training_path = "../datasets/"
 
-    for img_path in sorted(glob.glob(training_path+"light_spokes_training_images/*.png"), key=get_order):
+
+    #regex pattern I copied to sort filepaths in ascending order
+    file_pattern = re.compile(r'.*?(\d+).*?')
+    def get_order(file):
+        match = file_pattern.match(Path(file).name)
+        if not match:
+            return math.inf
+        return int(match.groups()[0])
+    
+
+    for img_path in sorted(glob.glob(training_path+image_type+"/*.png"), key=get_order):
         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
         X.append(img)
 
-    for mask_path in sorted(glob.glob(training_path+"light_spokes_training_masks/*.png"), key=get_order):
+    for mask_path in sorted(glob.glob(training_path+mask_type+"/*.png"), key=get_order):
         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
         mask[mask != 0] = 255
         Y.append(mask)
 
-    print(len(X), len(Y))
+    if aug_flag == 1:
+        X, Y = augment_trainingset.augment_semantic_set(X, Y, aug_num = aug_num)
+    print(len(X), len(Y))    
+
+    
+    
     return X, Y
 
 
@@ -99,11 +121,11 @@ def fit_model(x_train, y_train, model, batch_size = 10,epochs = 300, validation_
 
 
 
-def define_model(SIZE_X, SIZE_Y, backbone = "resnet34"):   
+def define_model(SIZE_Y, SIZE_X, backbone = "resnet34"):   
 
-    model = sm.Unet(backbone_name=backbone, encoder_weights = None, input_shape=(SIZE_Y*SIZE_X, 1))
-    # model = Model(inp, out, name=base_model.name)
+    model = sm.Unet(backbone_name="resnet34", encoder_weights = None, input_shape=(SIZE_Y,SIZE_X, 1))
     model.compile(optimizer = "Adam" , loss = "binary_crossentropy", metrics = [sm.metrics.IOUScore()], )
+    print(model.summary())
     return model
 
 
@@ -140,7 +162,7 @@ def model_testing(model, testing_folder, num_of_images):
 
     # num_of_images problematic here
     for filename, img in zip(filenames[:num_of_images], remaining_test[:num_of_images]):
-        print(filename, filenames.index(f"{filename}.png"))                                         
+        print(filename, filenames.index(f"{filename}"))                                         
         plt.imshow(img, cmap="gray")
         plt.show()
 
