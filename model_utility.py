@@ -31,10 +31,11 @@ def get_order(file):
 
 
 
-def display_results(results_path, axs = None):
-    if axs is None:
-        axs = plt.gca()
-
+def display_results(results_path):
+    model_path_no_ext = results_path.split(".")[0]
+    results_path =  model_path_no_ext+".json"
+    
+    
     with open(results_path) as json_file:
         results = json.load(json_file)
 
@@ -45,24 +46,22 @@ def display_results(results_path, axs = None):
     val_iou_score = results['val_iou_score']
     loss = results['loss']
     val_loss = results['val_loss']
-    eval_results = results['eval_results']
 
     epochs = range(1, len(iou_score) + 1)
-    # plt.figure()
-    axs.plot(epochs, iou_score, 'bo', label='Training acc')
-    axs.plot(epochs, val_iou_score, 'b', label='Validation acc')
-    axs.text(300,.6,f'{round(val_iou_score[-1], 3)}',horizontalalignment='right')
-    axs.set_title(f'{type}')
-    axs.legend(loc = "lower right")
 
+    plt.plot(epochs, iou_score, 'bo', label='Training acc')
+    plt.plot(epochs, val_iou_score, 'b', label='Validation acc')
+    plt.title(f'{type} Spoke Training and validation accuracy')
+    plt.legend()
 
-    # plt.yscale("log")
-    # plt.plot(epochs, loss, 'bo', label='Training loss')
-    # plt.plot(epochs, val_loss, 'b', label='Validation loss')
-    # plt.title(f'{type} Spoke Training and validation loss')
-    # plt.legend()
+    plt.figure()
+    plt.yscale("log")
+    plt.plot(epochs, loss, 'bo', label='Training loss')
+    plt.plot(epochs, val_loss, 'b', label='Validation loss')
+    plt.title(f'{type} Spoke Training and validation loss')
+    plt.legend()
 
-    # plt.show()
+    plt.show()
     print("Last Train IOU Score: ",results['iou_score'][-1])
     print("Last Train Loss Score: ", results['loss'][-1])
     print("Last Validation IOU Score: ", results['val_iou_score'][-1])
@@ -104,10 +103,17 @@ def data_gather(X, Y, image_type="light_spokes_training_images", mask_type="ligh
 
 
 
-def fit_model(x_train, y_train, model, batch_size = 10,epochs = 300, validation_split = .15 ):
+def fit_model(x_train, y_train, model, model_path,batch_size = 10,epochs = 300, validation_split = .15 ):
     #print(model.summary())
     
     # fit model
+    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=model_path,
+    monitor='val_iou_score',
+    mode='max',
+    save_best_only=True, 
+    verbose = True)
+    
     history = model.fit(
        x = x_train,
        y = y_train,
@@ -115,6 +121,7 @@ def fit_model(x_train, y_train, model, batch_size = 10,epochs = 300, validation_
        epochs = epochs,
        verbose = 1,
        validation_split = validation_split,
+       callbacks = [model_checkpoint_callback]
     )
 
     return history
@@ -130,11 +137,10 @@ def define_model(SIZE_Y, SIZE_X, backbone = "resnet34"):
 
 
 
-def save_model(model_path, model, history, results):
-    model.save(model_path, save_format="h5")
-    print(model_path)
+def save_model_history(model_path, model, history, results):
 
     model_path_no_ext = model_path.split(".")[0]
+    print(f"Which model is this:  {model_path_no_ext}")
 
     dump_dict = history.history
     dump_dict['eval_results'] = results
@@ -175,4 +181,3 @@ def model_testing(model, testing_folder, num_of_images):
     
     plt.close()
     return
-
