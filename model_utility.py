@@ -121,6 +121,7 @@ def fit_model(x_train, y_train, model, model_path,batch_size = 10,epochs = 300, 
        epochs = epochs,
        verbose = 1,
        validation_split = validation_split,
+       shuffle = True,
        callbacks = [model_checkpoint_callback]
     )
 
@@ -152,7 +153,7 @@ def save_model_history(model_path, model, history, results):
 
 
 def model_testing(model, testing_folder, num_of_images):
-    testing_folder = testing_folder+"_spokes_no_training/"
+    testing_folder = testing_folder+"/"
     remaining_dataset = sorted(glob.glob(f"../datasets/{testing_folder}*.png"), key=get_order)
     remaining_test = []
     filenames = []
