@@ -5,6 +5,7 @@ import seaborn as sns
 import numpy as np
 import glob
 import os
+import spoketools
 
 import scipy.io as io
 import copy
@@ -189,7 +190,7 @@ def save_image(new_path, filt_image):
 
 
 # Calls all filters in the propper order. 
-def apply_filters(filepath, plots = {'raw': False, 'cosmic_ray': False, 'outside_zero' : False, 'quant' : False, 'cropped' : False, 'lucy_median': False, 'forrier':False}):
+def initial_crop(filepath, plots = {'raw': False, 'cosmic_ray': False, 'outside_zero' : False, 'quant' : False, 'cropped' : False, 'lucy_median': False, 'forrier':False}):
         
 
     # W1600545658_1_cal.rpjb, W1597976395_1_cal.rpj1
@@ -254,13 +255,10 @@ def apply_filters(filepath, plots = {'raw': False, 'cosmic_ray': False, 'outside
     return filename, pixel_values, (rad_array, lon_array)
 
 
-# used to make the ~2000 training images
-if __name__ == '__main__':
-    testing_path = "data/2023_imagery/filtered/"
-    # problem: W1602460352
-    # suggestion: open rpi instead of rrpi and say remove anything less than 20 instead of less than 0.005
+def apply_filters(rpjb_filepath):
+        filename, pixel_values, coords = initial_crop(rpjb_filepath)
+        pixel_values = apply_lucy_median(pixel_values)
+        pixel_values = spoketools.fft2lpf(pixel_values, 0, 3)
+        pixel_values, coords = buffer_image(pixel_values, 736, 160, coords)
 
-    image_path = glob.glob(f"data/2023_rpjb/good/*/{'W1597978345'}*")
-    print(image_path)
-    apply_filters(image_path[0])
-    print("Complete!")
+        return pixel_values
