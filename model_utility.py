@@ -31,7 +31,10 @@ def get_order(file):
 
 
 
-def display_results(results_path):
+def display_results(results_path, ax = None):
+    if ax == None:
+        ax = plt.gca()
+
     model_path_no_ext = results_path.split(".")[0]
     results_path =  model_path_no_ext+".json"
     
@@ -49,19 +52,18 @@ def display_results(results_path):
 
     epochs = range(1, len(iou_score) + 1)
 
-    plt.plot(epochs, iou_score, 'bo', label='Training acc')
-    plt.plot(epochs, val_iou_score, 'b', label='Validation acc')
-    plt.title(f'{type} Spoke Training and validation accuracy')
-    plt.legend()
+    ax.plot(epochs, iou_score, 'bo', label='Training acc')
+    ax.plot(epochs, val_iou_score, 'b', label='Validation acc')
+    ax.legend()
 
-    plt.figure()
-    plt.yscale("log")
-    plt.plot(epochs, loss, 'bo', label='Training loss')
-    plt.plot(epochs, val_loss, 'b', label='Validation loss')
-    plt.title(f'{type} Spoke Training and validation loss')
-    plt.legend()
+    # plt.figure()
+    # plt.yscale("log")
+    # plt.plot(epochs, loss, 'bo', label='Training loss')
+    # plt.plot(epochs, val_loss, 'b', label='Validation loss')
+    # plt.title(f'{type} Spoke Training and validation loss')
+    # plt.legend()
 
-    plt.show()
+    # plt.show()
     print("Last Train IOU Score: ",results['iou_score'][-1])
     print("Last Train Loss Score: ", results['loss'][-1])
     print("Last Validation IOU Score: ", results['val_iou_score'][-1])

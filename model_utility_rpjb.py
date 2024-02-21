@@ -17,6 +17,7 @@ import cv2
 from pathlib import Path
 import re
 import json
+import sys
 
 #math
 import numpy as np
@@ -69,32 +70,57 @@ def display_results(results_path):
     json_file.close()
 
 
-def data_gather(X, Y, image_type="light_spokes_training_images", mask_type="light_spokes_training_masks", training_path = "../training/", aug_num = 0):
+# def data_gather(X, Y, image_type="light_spokes_training_images", mask_type="light_spokes_training_masks", training_path = "../training/", aug_num = 0):
 
-    training_path = "../datasets/"
+#     training_path = "../datasets/"
     
 
-    for rpjb_filepath in sorted(glob.glob(training_path+image_type+"/*.rpjb"), key=get_order):
-            filename, pixel_values, coords = preprocess_filter.apply_filters(rpjb_filepath)
+#     for rpjb_filepath in sorted(glob.glob(training_path+image_type+"/*.rpjb"), key=get_order):
+#             filename, pixel_values, coords = preprocess_filter.apply_filters(rpjb_filepath)
+#             pixel_values = preprocess_filter.apply_lucy_median(pixel_values)
+#             pixel_values = spoketools.fft2lpf(pixel_values, 0, 3)
+#             pixel_values, coords = preprocess_filter.buffer_image(pixel_values, 736, 160, coords)
+
+#             X.append(pixel_values)
+
+#     for mask_path in sorted(glob.glob(training_path+mask_type+"/*.png"), key=get_order):
+#         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+#         mask[mask != 0] = 1
+#         Y.append(mask)
+
+#     if aug_num:
+#         X, Y = augment_trainingset.augment_semantic_set(X, Y, aug_num = aug_num)
+#     print(len(X), len(Y))    
+    
+#     return X, Y
+
+def data_gather(X, Y, rpjb_list_path, mask_list_path):
+    with open(rpjb_list_path, "r").read() as f:
+        rpjb_list = f.readlines()
+
+    with open(mask_list_path, "r").read() as f:
+        mask_list = f.readlines()
+
+    for rpjb_path, mask_path in zip(rpjb_list, mask_list):
+        opus_id = Path(rpjb_path).stem.split("_")[0]
+        if opus_id not in mask_path:
+            print("The rpjb list and mask list are not in the same order. \nThey must be in the same order to train a model")
+            sys.exit(1)
+
+
+    for rpjb_filepath in rpjb_list:
+            pixel_values = preprocess_filter.apply_filters(rpjb_filepath)
             pixel_values = preprocess_filter.apply_lucy_median(pixel_values)
             pixel_values = spoketools.fft2lpf(pixel_values, 0, 3)
             pixel_values, coords = preprocess_filter.buffer_image(pixel_values, 736, 160, coords)
-
             X.append(pixel_values)
 
-    for mask_path in sorted(glob.glob(training_path+mask_type+"/*.png"), key=get_order):
+    for mask_path in mask_list:
         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
         mask[mask != 0] = 1
         Y.append(mask)
 
-    if aug_num:
-        X, Y = augment_trainingset.augment_semantic_set(X, Y, aug_num = aug_num)
-    print(len(X), len(Y))    
-
-    
-    
-    return X, Y
-
+        return X, Y
 
 def fit_model(x_train, y_train, model, model_path, batch_size = 10, epochs = 300, validation_split = .15 ):
     #print(model.summary())
@@ -141,6 +167,11 @@ def save_model_history(model_path, model, history, results):
     f.close()
 
 
+def load_model(model_path):
+    model = keras.models.load_model(model_path, compile = False)
+    model.compile(optimizer = "Adam" , loss = "binary_crossentropy", metrics = [sm.metrics.IOUScore()], )
+    return model
+
 def model_testing(model, testing_folder, num_of_images):
     testing_folder = testing_folder+"/"
     remaining_dataset = sorted(glob.glob(f"../datasets/{testing_folder}*.rpjb"), key=get_order)
@@ -152,10 +183,7 @@ def model_testing(model, testing_folder, num_of_images):
         
 
         print(filename, remaining_dataset.index(rpjb_filepath))
-        filename, pixel_values, coords = preprocess_filter.apply_filters(rpjb_filepath)
-        pixel_values = preprocess_filter.apply_lucy_median(pixel_values)
-        pixel_values = spoketools.fft2lpf(pixel_values, 0, 3)
-        pixel_values, coords = preprocess_filter.buffer_image(pixel_values, 736, 160, coords)
+        pixel_values = preprocess_filter.apply_filters(rpjb_filepath)
 
 
         plt.imshow(pixel_values, cmap="gray")
