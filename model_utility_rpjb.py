@@ -95,24 +95,18 @@ def display_results(results_path):
 #     return X, Y
 
 def data_gather(X, Y, rpjb_list_path, mask_list_path):
-    with open(rpjb_list_path, "r").read() as f:
-        rpjb_list = f.readlines()
+    with open(rpjb_list_path, "r") as f:
+        rpjb_list = f.read()
+        rpjb_list = rpjb_list.split("\n")[:-1]
+    
 
-    with open(mask_list_path, "r").read() as f:
-        mask_list = f.readlines()
-
-    for rpjb_path, mask_path in zip(rpjb_list, mask_list):
-        opus_id = Path(rpjb_path).stem.split("_")[0]
-        if opus_id not in mask_path:
-            print("The rpjb list and mask list are not in the same order. \nThey must be in the same order to train a model")
-            sys.exit(1)
+    with open(mask_list_path, "r") as f:
+        mask_list = f.read()
+        mask_list = mask_list.split("\n")[:-1]
 
 
     for rpjb_filepath in rpjb_list:
             pixel_values = preprocess_filter.apply_filters(rpjb_filepath)
-            pixel_values = preprocess_filter.apply_lucy_median(pixel_values)
-            pixel_values = spoketools.fft2lpf(pixel_values, 0, 3)
-            pixel_values, coords = preprocess_filter.buffer_image(pixel_values, 736, 160, coords)
             X.append(pixel_values)
 
     for mask_path in mask_list:
@@ -120,7 +114,8 @@ def data_gather(X, Y, rpjb_list_path, mask_list_path):
         mask[mask != 0] = 1
         Y.append(mask)
 
-        return X, Y
+
+    return X, Y
 
 def fit_model(x_train, y_train, model, model_path, batch_size = 10, epochs = 300, validation_split = .15 ):
     #print(model.summary())
@@ -147,18 +142,14 @@ def fit_model(x_train, y_train, model, model_path, batch_size = 10, epochs = 300
     return history
 
 def define_model(SIZE_Y, SIZE_X, backbone = "resnet34"):   
-
     model = sm.Unet(backbone_name="resnet34", encoder_weights = None, input_shape=(SIZE_Y,SIZE_X, 1))
-    model.compile(optimizer = "Adam" , loss = "binary_crossentropy", metrics = [sm.metrics.IOUScore()], )
-    print(model.summary())
+    model.compile(optimizer = "Adam" , loss = "binary_crossentropy", metrics = [sm.metrics.IOUScore()])
     return model
 
 
 def save_model_history(model_path, model, history, results):
 
-    model_path_no_ext = model_path.split(".")[0]
-    print(f"Which model is this:  {model_path_no_ext}")
-
+    model_path_no_ext = str(Path(model_path).parent)
     dump_dict = history.history
     dump_dict['eval_results'] = results
 

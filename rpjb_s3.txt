@@ -1,0 +1,15 @@
+../data/s3_spokes_set/rpjbs/W1597976395_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1600557120_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1600569624_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1600571708_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1600580044_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1601177014_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1630455570_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1630478190_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1630481090_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1630492690_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1630501390_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1630507190_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1766475429_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1766507649_1_CALIB.rpjb
+../data/s3_spokes_set/rpjbs/W1766550609_1_CALIB.rpjb
