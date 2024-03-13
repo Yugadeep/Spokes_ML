@@ -1,7 +1,7 @@
-#!/usr/bin/env -S python3
+#!/usr/bin/env python3
 
 # built-in imports
-import argparse 
+import argparse
 import sys
 import os
 import numpy as np
@@ -16,10 +16,6 @@ import model_utility_rpjb
 
 
 
-
-
-class Formatter(argparse.RawDescriptionHelpFormatter): 
-	pass
 
 
 # helper functions
@@ -70,7 +66,7 @@ def main():
     print("model finished!")
 
     print("saving model ...")
-    model_utility_rpjb.save_model_history(model_path, model, history, results)
+    model_utility_rpjb.save_model_history(model_path, history, results)
     print("model saved!")
 
     return

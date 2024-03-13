@@ -147,7 +147,7 @@ def define_model(SIZE_Y, SIZE_X, backbone = "resnet34"):
     return model
 
 
-def save_model_history(model_path, model, history, results):
+def save_model_history(model_path, history, results):
 
     model_path_no_ext = str(Path(model_path).parent)
     dump_dict = history.history
