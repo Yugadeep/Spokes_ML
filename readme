@@ -1,0 +1,13 @@
+#YK
+
+Steps I'm taking to make an ML model to detect spokes on images:  # obviously, I learned most of these steps from Will's work
+
+1) Choose a training set of rpjbs (images from Dr. Hedman's group), process them into thumbanils of (736, 160) size.
+
+2) Label them i.e., draw masks on the thumbnails on label-studio. 
+
+2) Export masks from label-studio as PNGs, but their names are ruined in the process. So, export masks again as a json file. Rename PNGs using the json file.
+
+3)*** MAKE SURE THAT THE MASKS AND THUMBNAILS ARE THE SAME SIZE ***. The unet framework expects the same size between masks and thumbnails. And also, that they shape is divisible by a specific number.
+
+4) Run model_generator.ipynb notebook if you want to make a model in the notebook. Or run mkmodel.py if you want to run it on the terminal.
